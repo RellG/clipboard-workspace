@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# User data — never commit (contains clipboard contents & uploaded files)
+data/
+uploads/
+current-items-backup.json
+*.db
+*.sqlite
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Editor / tooling
+.claude/
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Logs & temp
+*.log
+npm-debug.log*
+*.tmp
+*.pid

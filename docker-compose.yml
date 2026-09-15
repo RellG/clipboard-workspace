@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  clipboard:
+    build: .
+    container_name: relllab-clipboard
+    ports:
+      - "8084:80"   # Frontend (nginx)
+      - "3000:3000" # Backend API
+    restart: unless-stopped
+    volumes:
+      - ./uploads:/app/uploads  # Persist uploaded files
+      - ./data:/app/data        # Persist database & state
+    networks:
+      - clipboard-network
+
+networks:
+  clipboard-network:
+    driver: bridge

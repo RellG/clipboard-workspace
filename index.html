@@ -1,0 +1,2740 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Clipboard — Modern Workspace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #121214;
+            --bg-secondary: #18181b;
+            --bg-tertiary: #202024;
+            --bg-canvas: #09090b;
+            --bg-elevated: #27272a;
+            --bg-hover: rgba(255, 255, 255, 0.05);
+            --bg-active: rgba(255, 255, 255, 0.09);
+            
+            --text-primary: #f4f4f5;
+            --text-secondary: #a1a1aa;
+            --text-tertiary: #71717a;
+            --text-accent: #38bdf8;
+            
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.16);
+            --border-focus: #38bdf8;
+            
+            --accent-glow: rgba(56, 189, 248, 0.16);
+            --accent-purple: #a855f7;
+            --accent-green: #22c55e;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', "SF Mono", Menlo, Consolas, monospace;
+            
+            --sidebar-width: 270px;
+            --header-height: 52px;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --radius-xl: 18px;
+            
+            --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.45);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9f9fb;
+            --bg-tertiary: #f1f1f4;
+            --bg-canvas: #f4f4f6;
+            --bg-elevated: #ffffff;
+            --bg-hover: rgba(0, 0, 0, 0.04);
+            --bg-active: rgba(0, 0, 0, 0.08);
+            
+            --text-primary: #18181b;
+            --text-secondary: #52525b;
+            --text-tertiary: #a1a1aa;
+            --text-accent: #0284c7;
+            
+            --border-subtle: rgba(0, 0, 0, 0.08);
+            --border-hover: rgba(0, 0, 0, 0.16);
+            --border-focus: #0284c7;
+            
+            --accent-glow: rgba(2, 132, 199, 0.1);
+            --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.05);
+            --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            user-select: none;
+        }
+
+        /* Ambient Parallax Mesh */
+        .parallax-mesh-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .ambient-glow-1 {
+            position: absolute;
+            width: 550px;
+            height: 550px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.07) 0%, rgba(168, 85, 247, 0.02) 60%, transparent 80%);
+            filter: blur(60px);
+            transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+            will-change: transform;
+        }
+
+        /* App Shell */
+        .app-layout {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* SVG icon helper styling */
+        .svg-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 0;
+            color: inherit;
+        }
+        .svg-icon svg {
+            display: block;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-primary);
+            border-right: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), margin-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 40;
+            flex-shrink: 0;
+        }
+        .sidebar.collapsed {
+            margin-left: calc(-1 * var(--sidebar-width));
+        }
+
+        .sidebar-header {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .workspace-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 13.5px;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: var(--radius-sm);
+            transition: background 0.15s ease;
+        }
+        .workspace-badge:hover {
+            background-color: var(--bg-hover);
+        }
+        .workspace-icon-box {
+            width: 24px;
+            height: 24px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-accent);
+        }
+
+        .sidebar-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+        .icon-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .sidebar-search-box {
+            padding: 12px 14px 6px 14px;
+        }
+        .search-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .search-input-wrapper .search-icon {
+            position: absolute;
+            left: 10px;
+            color: var(--text-tertiary);
+            pointer-events: none;
+        }
+        .search-input {
+            width: 100%;
+            padding: 7px 10px 7px 32px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: var(--font-sans);
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .search-input:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+        .search-shortcut {
+            position: absolute;
+            right: 8px;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 4px;
+            background: var(--bg-tertiary);
+            color: var(--text-tertiary);
+            border: 1px solid var(--border-subtle);
+            font-family: var(--font-mono);
+        }
+
+        .sidebar-nav {
+            padding: 8px 10px;
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+        .nav-section-title {
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-tertiary);
+            padding: 10px 8px 4px 8px;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.12s ease;
+            margin-bottom: 2px;
+        }
+        .nav-item:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .nav-item.active {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .nav-item-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-item-left .svg-icon {
+            color: var(--text-tertiary);
+        }
+        .nav-item.active .nav-item-left .svg-icon {
+            color: var(--text-accent);
+        }
+        .nav-badge {
+            font-size: 11px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            background: var(--bg-tertiary);
+            color: var(--text-tertiary);
+            font-family: var(--font-mono);
+        }
+
+        .tag-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            padding: 3px 9px;
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .tag-pill:hover, .tag-pill.active {
+            border-color: var(--text-accent);
+            color: var(--text-accent);
+            background: var(--accent-glow);
+        }
+
+        .sidebar-footer {
+            padding: 10px 14px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11.5px;
+            color: var(--text-tertiary);
+        }
+        .live-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+
+        /* Main Workspace */
+        .main-workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            background: transparent;
+        }
+
+        .top-navbar {
+            height: var(--header-height);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            background: rgba(18, 18, 20, 0.7);
+            backdrop-filter: blur(12px);
+            z-index: 20;
+        }
+        [data-theme="light"] .top-navbar {
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .breadcrumbs {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .breadcrumbs span.current {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Notepad Tab Header */
+        .tabs-header-bar {
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            gap: 4px;
+            height: 40px;
+        }
+        .tabs-header-bar::-webkit-scrollbar { display: none; }
+
+        .notepad-tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: transparent;
+            border: 1px solid transparent;
+            border-bottom: none;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.12s ease;
+            position: relative;
+        }
+        .notepad-tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+        .notepad-tab.active {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+            border-color: var(--border-subtle);
+            font-weight: 500;
+        }
+        .notepad-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--text-accent);
+        }
+        .tab-close-btn {
+            color: var(--text-tertiary);
+            border-radius: 3px;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-left: 4px;
+        }
+        .tab-close-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        .new-tab-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            color: var(--text-secondary);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            transition: all 0.15s ease;
+        }
+        .new-tab-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        /* Workspace Split */
+        .workspace-split {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 440px;
+            overflow: hidden;
+            position: relative;
+            min-height: 0;
+        }
+        @media (max-width: 1200px) and (min-width: 901px) {
+            .workspace-split { grid-template-columns: 1fr 380px; }
+        }
+
+        /* Editor Section */
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-subtle);
+            overflow: hidden;
+            position: relative;
+            min-height: 0;
+        }
+
+        .notion-doc-header {
+            padding: 20px 36px 8px 36px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .doc-icon-badge {
+            width: 36px;
+            height: 36px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-accent);
+        }
+        .doc-title-input {
+            background: transparent;
+            border: none;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            outline: none;
+            width: 100%;
+        }
+        .doc-title-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .editor-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 36px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-primary);
+        }
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .tool-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            font-size: 12.5px;
+            font-family: var(--font-sans);
+            padding: 5px 10px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+        .tool-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .tool-btn.active {
+            background: var(--bg-active);
+            color: var(--text-primary);
+            border-color: var(--border-subtle);
+        }
+
+        .btn-action-primary {
+            background: #0284c7;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #ffffff;
+            border: none;
+            font-weight: 500;
+            font-size: 13px;
+            padding: 6px 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .btn-action-primary:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+
+        .editor-core-area {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+        .gutter {
+            width: 44px;
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-subtle);
+            padding: 16px 0;
+            color: var(--text-tertiary);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            line-height: 22px;
+            text-align: right;
+            padding-right: 10px;
+            user-select: none;
+            overflow: hidden;
+        }
+        .editor-text-wrapper {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        .main-textarea {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            padding: 16px 24px;
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            line-height: 22px;
+            resize: none;
+            tab-size: 4;
+            user-select: text;
+        }
+        .main-textarea.mono-mode {
+            font-family: var(--font-mono);
+            font-size: 13px;
+        }
+
+        .markdown-preview-pane {
+            position: absolute;
+            inset: 0;
+            background: var(--bg-secondary);
+            padding: 24px 36px;
+            overflow-y: auto;
+            color: var(--text-primary);
+            font-size: 14.5px;
+            line-height: 1.65;
+            user-select: text;
+            display: none;
+        }
+        .markdown-preview-pane.active {
+            display: block;
+        }
+
+        /* Markdown Elements */
+        .markdown-preview-pane h1 { font-size: 24px; margin: 18px 0 10px 0; font-weight: 700; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px; }
+        .markdown-preview-pane h2 { font-size: 19px; margin: 16px 0 8px 0; font-weight: 600; }
+        .markdown-preview-pane h3 { font-size: 15px; margin: 14px 0 6px 0; font-weight: 600; }
+        .markdown-preview-pane p { margin-bottom: 12px; }
+        .markdown-preview-pane blockquote {
+            border-left: 3px solid var(--text-accent);
+            background: var(--bg-hover);
+            padding: 8px 14px;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            margin: 12px 0;
+            color: var(--text-secondary);
+        }
+        .markdown-preview-pane pre {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            overflow-x: auto;
+            margin: 14px 0;
+            position: relative;
+        }
+        .markdown-preview-pane code {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .markdown-preview-pane pre code {
+            background: transparent;
+            padding: 0;
+        }
+
+        /* Slash Menu */
+        .slash-menu {
+            position: absolute;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-hover);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-elevated);
+            width: 220px;
+            max-height: 280px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            padding: 4px;
+        }
+        .slash-menu.visible { display: block; }
+        .slash-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+        .slash-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .slash-item-badge {
+            font-size: 11px;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: var(--text-tertiary);
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Status Bar */
+        .editor-status-bar {
+            height: 28px;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-size: 11px;
+            color: var(--text-tertiary);
+            font-family: var(--font-mono);
+        }
+        .status-left, .status-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .autosave-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--accent-green);
+        }
+
+        /* Feed Panel */
+        .feed-panel {
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-left: 1px solid var(--border-subtle);
+            min-height: 0;
+            height: 100%;
+        }
+        .feed-header {
+            height: 48px;
+            padding: 0 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .feed-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .feed-count-pill {
+            font-size: 11px;
+            padding: 1px 7px;
+            border-radius: 10px;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+        }
+        .feed-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+            overflow-x: auto;
+            scrollbar-width: none;
+            flex-shrink: 0;
+        }
+        .feed-filter-bar::-webkit-scrollbar { display: none; }
+        .feed-list-container {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scrollbar-width: thin;
+        }
+
+        /* Fixed Clip Card Styles */
+        .clip-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+            flex-shrink: 0 !important;
+            min-height: fit-content !important;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .clip-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-subtle);
+        }
+        .clip-card.pinned {
+            border-left: 3px solid var(--accent-amber);
+        }
+
+        .card-meta-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+        .card-type-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 10.5px;
+            color: var(--text-secondary);
+        }
+        .card-actions-hover {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            opacity: 0.6;
+            transition: opacity 0.12s ease;
+        }
+        .clip-card:hover .card-actions-hover {
+            opacity: 1;
+        }
+
+        .card-title {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            line-height: 1.35;
+        }
+        .card-snippet {
+            font-size: 12.5px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+        }
+
+        /* Refined Link Card */
+        .rich-link-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .link-domain-badge {
+            font-size: 10px;
+            font-family: var(--font-mono);
+            color: var(--text-accent);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .link-url-text {
+            font-size: 12px;
+            color: var(--text-primary);
+            word-break: break-all;
+            line-height: 1.35;
+            font-family: var(--font-mono);
+        }
+        .link-footer-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .link-action-link {
+            font-size: 11px;
+            color: var(--text-accent);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+        }
+        .link-action-link:hover {
+            text-decoration: underline;
+        }
+
+        .link-item-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .link-item-row:last-child {
+            padding-bottom: 0;
+            margin-bottom: 0;
+            border-bottom: none;
+        }
+
+        .card-tags-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 4px;
+        }
+        .mini-tag {
+            font-size: 10px;
+            font-family: var(--font-mono);
+            color: var(--text-tertiary);
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        /* Code Card */
+        .code-snippet-box {
+            background: var(--bg-canvas);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--text-primary);
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        /* Media Container */
+        .media-preview-container {
+            margin-top: 8px;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            background: var(--bg-canvas);
+            border: 1px solid var(--border-subtle);
+        }
+        .media-image-thumb {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            display: block;
+            cursor: zoom-in;
+            transition: transform 0.2s ease;
+        }
+        .media-image-thumb:hover {
+            transform: scale(1.02);
+        }
+        .media-audio-player, .media-video-player {
+            width: 100%;
+            outline: none;
+            display: block;
+        }
+
+        .file-meta-pill {
+            font-size: 10.5px;
+            color: var(--text-tertiary);
+            font-family: var(--font-mono);
+        }
+
+        /* Drag Overlay */
+        .drag-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(9, 9, 11, 0.88);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 14px;
+            border: 2px dashed var(--text-accent);
+            margin: 16px;
+            border-radius: var(--radius-xl);
+        }
+        .drag-overlay.active { display: flex; }
+        .drag-icon-box {
+            color: var(--text-accent);
+        }
+
+        /* Toast Shelf */
+        .toast-shelf {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-hover);
+            border-radius: var(--radius-md);
+            padding: 10px 16px;
+            box-shadow: var(--shadow-elevated);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
+            animation: toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            max-width: 340px;
+        }
+        @keyframes toast-in {
+            0% { opacity: 0; transform: translateY(12px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Lightbox */
+        .lightbox-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.92);
+            backdrop-filter: blur(10px);
+            z-index: 1500;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .lightbox-modal.active { display: flex; }
+        .lightbox-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: var(--radius-md);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            object-fit: contain;
+        }
+
+        .mini-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-tertiary);
+            padding: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.12s ease;
+        }
+        .mini-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        .mini-btn.pinned {
+            color: var(--accent-amber);
+        }
+
+        /* ====================================================================
+           Mobile Web & Responsive UI/UX Engine
+           ==================================================================== */
+        :root {
+            --sat: env(safe-area-inset-top, 0px);
+            --sar: env(safe-area-inset-right, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+            --sal: env(safe-area-inset-left, 0px);
+        }
+
+        /* iOS/Notion-Style Segmented View Switcher */
+        .mobile-segmented-control {
+            display: none;
+            align-items: center;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 9999px;
+            padding: 3px;
+            gap: 2px;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+            user-select: none;
+        }
+        .segment-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 12.5px;
+            font-weight: 500;
+            font-family: var(--font-sans);
+            padding: 5px 12px;
+            min-height: 32px;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .segment-btn:active {
+            transform: scale(0.96);
+        }
+        .segment-btn.active {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25), 0 0 0 1px var(--border-subtle);
+            font-weight: 600;
+        }
+        [data-theme="light"] .segment-btn.active {
+            background: #ffffff;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.08);
+        }
+        .segment-badge {
+            font-size: 10px;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            color: var(--text-tertiary);
+            border: 1px solid var(--border-subtle);
+            transition: all 0.15s ease;
+        }
+        .segment-btn.active .segment-badge {
+            background: var(--accent-glow);
+            color: var(--text-accent);
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+
+        /* Sidebar Mobile Backdrop */
+        .sidebar-backdrop {
+            display: none;
+        }
+
+        /* Momentum scrolling on scrollable horizontal bars */
+        .tabs-header-bar,
+        .feed-filter-bar,
+        .editor-toolbar {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Fade Animation for Seamless View Transitions */
+        @keyframes mobileFadeIn {
+            0% { opacity: 0; transform: translateY(4px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Small Screens & Tablets (<= 900px) */
+        @media (max-width: 900px) {
+            body {
+                padding-top: var(--sat);
+                padding-bottom: var(--sab);
+                padding-left: var(--sal);
+                padding-right: var(--sar);
+            }
+
+            .app-layout {
+                height: 100dvh;
+            }
+
+            /* Segmented Switcher in Top Bar */
+            .mobile-segmented-control {
+                display: inline-flex;
+            }
+
+            /* Navbar Layout */
+            .top-navbar {
+                padding: 0 12px;
+                gap: 8px;
+            }
+            .breadcrumbs {
+                display: none;
+            }
+            #expandSidebarBtn {
+                display: flex !important;
+                min-width: 40px;
+                min-height: 40px;
+            }
+
+            /* Mobile Sidebar Drawer */
+            .sidebar-backdrop {
+                display: block;
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.65);
+                backdrop-filter: blur(6px);
+                -webkit-backdrop-filter: blur(6px);
+                z-index: 998 !important;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .sidebar-backdrop.active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                width: min(310px, 84vw);
+                height: 100%;
+                height: 100dvh;
+                background-color: var(--bg-primary) !important;
+                z-index: 1000 !important;
+                transform: translateX(-100%);
+                margin-left: 0 !important;
+                box-shadow: none;
+                transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease;
+                padding-top: var(--sat);
+                padding-bottom: var(--sab);
+            }
+            .sidebar.drawer-open {
+                transform: translateX(0) !important;
+                box-shadow: 12px 0 40px rgba(0, 0, 0, 0.65);
+                z-index: 1001 !important;
+            }
+
+            /* Views Toggle on Mobile */
+            .workspace-split {
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+                min-height: 0;
+                position: relative;
+                grid-template-columns: none !important;
+            }
+
+            .workspace-split .editor-container {
+                display: flex;
+                flex: 1;
+                width: 100%;
+                min-height: 0;
+                border-right: none;
+                animation: mobileFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .workspace-split .feed-panel {
+                display: none;
+                flex: 1;
+                width: 100%;
+                min-height: 0;
+                border-left: none;
+            }
+
+            .workspace-split.view-clips .editor-container {
+                display: none !important;
+            }
+            .workspace-split.view-clips .feed-panel {
+                display: flex !important;
+                animation: mobileFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            /* Compact Margins & Paddings */
+            .notion-doc-header {
+                padding: 14px 16px 8px 16px;
+                gap: 12px;
+            }
+            .doc-icon-badge {
+                width: 32px;
+                height: 32px;
+                flex-shrink: 0;
+            }
+            .doc-title-input {
+                font-size: 20px;
+            }
+
+            .editor-toolbar {
+                padding: 8px 12px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                gap: 10px;
+                white-space: nowrap;
+            }
+            .editor-toolbar::-webkit-scrollbar {
+                display: none;
+            }
+            .toolbar-group {
+                flex-shrink: 0;
+                gap: 6px;
+            }
+
+            /* Touch Target Ergonomics */
+            .tool-btn {
+                min-height: 38px;
+                padding: 6px 12px;
+                font-size: 13px;
+                display: inline-flex;
+                align-items: center;
+            }
+            .tool-btn:active,
+            .btn-action-primary:active,
+            .icon-btn:active,
+            .notepad-tab:active,
+            .tag-pill:active,
+            .nav-item:active,
+            .mini-btn:active {
+                transform: scale(0.96);
+            }
+            .icon-btn {
+                min-width: 40px;
+                min-height: 40px;
+            }
+            .notepad-tab {
+                min-height: 38px;
+                padding: 6px 14px;
+            }
+            .new-tab-btn {
+                min-width: 38px;
+                min-height: 38px;
+            }
+            .tab-close-btn {
+                min-width: 28px;
+                min-height: 28px;
+            }
+            .nav-item {
+                min-height: 44px;
+                padding: 8px 12px;
+            }
+            .tag-pill {
+                min-height: 36px;
+                padding: 6px 12px;
+            }
+            .mini-btn {
+                min-width: 36px;
+                min-height: 36px;
+            }
+
+            /* Feed Filter Bar Horizontal Momentum Scroll */
+            .feed-filter-bar {
+                padding: 8px 12px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                gap: 6px;
+                white-space: nowrap;
+            }
+            .feed-filter-bar::-webkit-scrollbar {
+                display: none;
+            }
+
+            /* Feed List Container & Clip Cards */
+            .feed-list-container {
+                padding: 12px;
+                gap: 10px;
+                -webkit-overflow-scrolling: touch;
+            }
+            .clip-card {
+                padding: 12px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .media-preview-container img,
+            .media-preview-container video {
+                max-width: 100%;
+                height: auto;
+            }
+            .media-audio-player {
+                width: 100%;
+            }
+
+            .editor-status-bar {
+                padding-bottom: max(2px, var(--sab));
+            }
+        }
+
+        /* Mobile Phone & iOS Auto-Zoom Prevention: <= 768px */
+        @media (max-width: 768px) {
+            input[type="text"],
+            input[type="search"],
+            textarea,
+            .search-input,
+            .main-textarea,
+            .doc-title-input {
+                font-size: 16px !important;
+            }
+
+            .main-textarea {
+                padding: 12px 14px;
+                line-height: 22px;
+            }
+            .markdown-preview-pane {
+                padding: 14px 16px;
+            }
+
+            .nav-action-btn .btn-label-text {
+                display: none;
+            }
+            .nav-action-btn {
+                padding: 6px 10px;
+                min-height: 38px;
+            }
+        }
+
+        /* Narrow Phones: <= 600px */
+        @media (max-width: 600px) {
+            .gutter {
+                width: 24px;
+                padding: 12px 0;
+                font-size: 10.5px;
+                line-height: 22px;
+                text-align: center;
+                padding-right: 0;
+            }
+
+            .editor-status-bar {
+                padding: 0 10px;
+                font-size: 10.5px;
+            }
+            .status-left span:nth-child(3) {
+                display: none;
+            }
+
+            .toast-shelf {
+                bottom: calc(12px + var(--sab));
+                left: 12px;
+                right: 12px;
+            }
+            .toast {
+                max-width: 100%;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient Parallax Mesh -->
+    <div class="parallax-mesh-bg" id="parallaxMesh">
+        <div class="ambient-glow-1" id="ambientGlow1"></div>
+    </div>
+
+    <!-- Drag & Drop Overlay -->
+    <div class="drag-overlay" id="dragOverlay">
+        <div class="drag-icon-box">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        </div>
+        <div style="font-size: 17px; font-weight: 600;">Drop files to upload to Clipboard</div>
+        <div style="font-size: 12.5px; color: var(--text-secondary);">Images, Audio, Videos, Documents up to 100MB</div>
+    </div>
+
+    <!-- Lightbox Modal -->
+    <div class="lightbox-modal" id="lightboxModal" onclick="closeLightbox()">
+        <img class="lightbox-content" id="lightboxImg" src="" alt="Preview">
+    </div>
+
+    <!-- App Layout -->
+    <div class="app-layout">
+        <!-- Sidebar Mobile Drawer Backdrop -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebarDrawer()"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="workspace-badge" onclick="loadTab('scratchpad')">
+                    <div class="workspace-icon-box">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                    </div>
+                    <span>Clipboard</span>
+                </div>
+                <div class="sidebar-actions">
+                    <button class="icon-btn" id="themeToggleBtn" title="Toggle Theme"></button>
+                    <button class="icon-btn" id="collapseSidebarBtn" title="Collapse Sidebar">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search Box -->
+            <div class="sidebar-search-box">
+                <div class="search-input-wrapper">
+                    <div class="search-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </div>
+                    <input type="text" class="search-input" id="sidebarSearch" placeholder="Search clips & notes..." oninput="handleSearch(this.value)">
+                    <span class="search-shortcut">⌘F</span>
+                </div>
+            </div>
+
+            <!-- Views Navigation -->
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Views</div>
+                <div class="nav-item active" onclick="setFeedFilter('all')">
+                    <div class="nav-item-left">
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
+                        <span>All Items</span>
+                    </div>
+                    <span class="nav-badge" id="badgeAll">0</span>
+                </div>
+                <div class="nav-item" onclick="setFeedFilter('pinned')">
+                    <div class="nav-item-left">
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>
+                        <span>Pinned</span>
+                    </div>
+                    <span class="nav-badge" id="badgePinned">0</span>
+                </div>
+                <div class="nav-item" onclick="setFeedFilter('link')">
+                    <div class="nav-item-left">
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></span>
+                        <span>Links & Bookmarks</span>
+                    </div>
+                    <span class="nav-badge" id="badgeLinks">0</span>
+                </div>
+                <div class="nav-item" onclick="setFeedFilter('code')">
+                    <div class="nav-item-left">
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></span>
+                        <span>Code Snippets</span>
+                    </div>
+                    <span class="nav-badge" id="badgeCode">0</span>
+                </div>
+                <div class="nav-item" onclick="setFeedFilter('file')">
+                    <div class="nav-item-left">
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></span>
+                        <span>Media & Files</span>
+                    </div>
+                    <span class="nav-badge" id="badgeFiles">0</span>
+                </div>
+
+                <div class="nav-section-title">Tags</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 8px;" id="tagPillsContainer"></div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="live-status">
+                    <div class="live-dot"></div>
+                    <span>Live Sync (SSE)</span>
+                </div>
+                <span id="clientCounter">Homelab Pi</span>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main-workspace">
+            <!-- Top Navbar -->
+            <header class="top-navbar">
+                <div class="navbar-left">
+                    <button class="icon-btn" id="expandSidebarBtn" style="display: none;" title="Toggle Sidebar">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    </button>
+                    <div class="breadcrumbs">
+                        <span>Workspace</span>
+                        <span style="color: var(--text-tertiary);">/</span>
+                        <span class="current" id="breadcrumbCurrent">Scratchpad</span>
+                    </div>
+                </div>
+
+                <!-- iOS / Notion Style Segmented Switcher for Screens <= 900px -->
+                <div class="mobile-segmented-control" id="mobileSegmentedControl">
+                    <button class="segment-btn active" id="segBtnEditor" onclick="switchMobileView('editor')">
+                        <span class="svg-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></span>
+                        <span>Editor</span>
+                    </button>
+                    <button class="segment-btn" id="segBtnClips" onclick="switchMobileView('clips')">
+                        <span class="svg-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
+                        <span>Clips</span>
+                        <span class="segment-badge" id="segClipsCount">0</span>
+                    </button>
+                </div>
+
+                <div class="navbar-right">
+                    <input type="file" id="filePicker" multiple style="display: none;" onchange="uploadSelectedFiles(this.files)">
+                    <button class="tool-btn nav-action-btn" onclick="document.getElementById('filePicker').click()" title="Upload File">
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></span>
+                        <span class="btn-label-text">Upload</span>
+                    </button>
+                    <button class="btn-action-primary nav-action-btn" onclick="publishCurrentNote()" title="Save Clip">
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline></svg></span>
+                        <span class="btn-label-text">Save</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Notepad Multi-Tab Bar -->
+            <div class="tabs-header-bar" id="tabsHeaderBar">
+                <button class="new-tab-btn" onclick="createNewTab()" title="New Scratchpad Tab">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+            </div>
+
+            <!-- Workspace Split -->
+            <div class="workspace-split">
+                <!-- Editor -->
+                <section class="editor-container">
+                    <div class="notion-doc-header">
+                        <div class="doc-icon-badge" id="docIconBadge">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                        </div>
+                        <input type="text" class="doc-title-input" id="docTitle" placeholder="Untitled Note" oninput="handleTitleChange(this.value)">
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div class="editor-toolbar">
+                        <div class="toolbar-group">
+                            <button class="tool-btn active" id="btnEditMode" onclick="setEditorMode('edit')">
+                                <span class="svg-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></span>
+                                <span>Edit</span>
+                            </button>
+                            <button class="tool-btn" id="btnPreviewMode" onclick="setEditorMode('preview')">
+                                <span class="svg-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+                                <span>Preview</span>
+                            </button>
+                            <button class="tool-btn" id="btnSlashHelper" onclick="triggerSlashMenu()">
+                                <span class="svg-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="4" x2="5" y2="20"></line></svg></span>
+                                <span>Blocks</span>
+                            </button>
+                        </div>
+                        <div class="toolbar-group">
+                            <button class="tool-btn" id="btnMonoFont" onclick="toggleMonoFont()" title="Toggle Monospace">
+                                <span class="svg-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg></span>
+                                <span>Mono</span>
+                            </button>
+                            <button class="tool-btn" onclick="copyEditorText()" title="Copy to Clipboard">
+                                <span class="svg-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></span>
+                                <span>Copy</span>
+                            </button>
+                            <button class="tool-btn" onclick="clearEditor()" title="Clear Canvas">
+                                <span class="svg-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></span>
+                                <span>Clear</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Core Text Area -->
+                    <div class="editor-core-area">
+                        <div class="gutter" id="editorGutter">1</div>
+                        <div class="editor-text-wrapper">
+                            <textarea 
+                                id="editorTextarea" 
+                                class="main-textarea" 
+                                placeholder="Type anything, write markdown, paste code, or type / for blocks..."
+                                spellcheck="false"
+                            ></textarea>
+                            <div class="markdown-preview-pane" id="markdownPreviewPane"></div>
+                        </div>
+
+                        <!-- Slash Menu -->
+                        <div class="slash-menu" id="slashMenu">
+                            <div class="slash-item" onclick="insertSlashCommand('# ')"><span class="slash-item-badge">H1</span> Heading 1</div>
+                            <div class="slash-item" onclick="insertSlashCommand('## ')"><span class="slash-item-badge">H2</span> Heading 2</div>
+                            <div class="slash-item" onclick="insertSlashCommand('- [ ] ')"><span class="slash-item-badge">[ ]</span> Checklist</div>
+                            <div class="slash-item" onclick="insertSlashCommand('```javascript\n\n```')"><span class="slash-item-badge">&lt;/&gt;</span> Code Block</div>
+                            <div class="slash-item" onclick="insertSlashCommand('> ')"><span class="slash-item-badge">&gt;</span> Callout Quote</div>
+                            <div class="slash-item" onclick="insertSlashCommand('- ')"><span class="slash-item-badge">•</span> Bullet List</div>
+                            <div class="slash-item" onclick="insertSlashCommand('---\n')"><span class="slash-item-badge">―</span> Divider</div>
+                        </div>
+                    </div>
+
+                    <!-- Status Bar -->
+                    <footer class="editor-status-bar">
+                        <div class="status-left">
+                            <span id="statLineCol">Ln 1, Col 1</span>
+                            <span id="statWordCount">0 words</span>
+                            <span id="statCharCount">0 characters</span>
+                        </div>
+                        <div class="status-right">
+                            <div class="autosave-indicator" id="autosaveIndicator">
+                                <span style="font-size: 8px;">●</span>
+                                <span id="autosaveText">Synced</span>
+                            </div>
+                            <span>UTF-8</span>
+                        </div>
+                    </footer>
+                </section>
+
+                <!-- Right Feed Panel -->
+                <aside class="feed-panel" id="feedPanel">
+                    <div class="feed-header">
+                        <div class="feed-title">
+                            <span>Saved Clips & History</span>
+                            <span class="feed-count-pill" id="feedCountPill">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div class="feed-filter-bar" id="filterPillsBar">
+                        <button class="tag-pill active" onclick="setFeedFilter('all')">All</button>
+                        <button class="tag-pill" onclick="setFeedFilter('pinned')">Pinned</button>
+                        <button class="tag-pill" onclick="setFeedFilter('text')">Notes</button>
+                        <button class="tag-pill" onclick="setFeedFilter('code')">Code</button>
+                        <button class="tag-pill" onclick="setFeedFilter('link')">Links</button>
+                        <button class="tag-pill" onclick="setFeedFilter('file')">Media</button>
+                    </div>
+
+                    <!-- Cards Container -->
+                    <div class="feed-list-container" id="feedListContainer"></div>
+                </aside>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-shelf" id="toastShelf"></div>
+
+    <script>
+        // ====================================================================
+        // Vector SVG Icons
+        // ====================================================================
+        const ICONS = {
+            doc: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`,
+            code: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>`,
+            link: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`,
+            star: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
+            starFilled: `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
+            image: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`,
+            video: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>`,
+            audio: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>`,
+            file: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>`,
+            copy: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
+            trash: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
+            download: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
+            external: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`,
+            sun: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`,
+            moon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`,
+            check: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+            x: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`
+        };
+
+        // ====================================================================
+        // Configuration & State
+        // ====================================================================
+        const API_BASE = '/api';
+        let allItems = [];
+        let tabs = [];
+        let activeTabId = 'scratchpad';
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let editorMode = 'edit';
+        let sseSource = null;
+        let saveDebounceTimer = null;
+
+        // Parallax Engine
+        let targetMouseX = window.innerWidth / 2;
+        let targetMouseY = window.innerHeight / 2;
+        let currentMouseX = targetMouseX;
+        let currentMouseY = targetMouseY;
+
+        function initParallax() {
+            window.addEventListener('mousemove', (e) => {
+                targetMouseX = e.clientX;
+                targetMouseY = e.clientY;
+            });
+
+            function renderParallax() {
+                currentMouseX += (targetMouseX - currentMouseX) * 0.08;
+                currentMouseY += (targetMouseY - currentMouseY) * 0.08;
+
+                const glow1 = document.getElementById('ambientGlow1');
+                if (glow1) {
+                    glow1.style.transform = `translate3d(${currentMouseX - 275}px, ${currentMouseY - 275}px, 0)`;
+                }
+                requestAnimationFrame(renderParallax);
+            }
+            requestAnimationFrame(renderParallax);
+        }
+
+        // ====================================================================
+        // Theme Management
+        // ====================================================================
+        function initTheme() {
+            const saved = localStorage.getItem('rell_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+            updateThemeButton(saved);
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'dark';
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('rell_theme', next);
+            updateThemeButton(next);
+        }
+
+        function updateThemeButton(theme) {
+            const btn = document.getElementById('themeToggleBtn');
+            if (btn) btn.innerHTML = theme === 'dark' ? ICONS.moon : ICONS.sun;
+        }
+
+        // ====================================================================
+        // Real-Time SSE
+        // ====================================================================
+        function initSSE() {
+            if (sseSource) sseSource.close();
+            sseSource = new EventSource(`${API_BASE}/events`);
+
+            sseSource.addEventListener('item_created', (e) => {
+                const item = JSON.parse(e.data);
+                const exists = allItems.some(i => String(i.id) === String(item.id));
+                if (!exists) {
+                    allItems.unshift(item);
+                    renderFeed();
+                    showToast(`New ${item.type} clip synced!`);
+                }
+            });
+
+            sseSource.addEventListener('item_updated', (e) => {
+                const updated = JSON.parse(e.data);
+                const idx = allItems.findIndex(i => String(i.id) === String(updated.id));
+                if (idx !== -1) {
+                    allItems[idx] = updated;
+                    renderFeed();
+                }
+            });
+
+            sseSource.addEventListener('item_deleted', (e) => {
+                const { id } = JSON.parse(e.data);
+                allItems = allItems.filter(i => String(i.id) !== String(id));
+                renderFeed();
+            });
+
+            sseSource.addEventListener('tab_updated', (e) => {
+                const tab = JSON.parse(e.data);
+                const tIdx = tabs.findIndex(t => t.id === tab.id);
+                if (tIdx !== -1) {
+                    tabs[tIdx] = tab;
+                    renderTabs();
+                    if (tab.id === activeTabId) {
+                        const ta = document.getElementById('editorTextarea');
+                        if (ta && ta.value !== tab.content && document.activeElement !== ta) {
+                            ta.value = tab.content;
+                            updateStats();
+                            updateGutter();
+                            if (editorMode === 'preview') renderMarkdown();
+                        }
+                    }
+                }
+            });
+        }
+
+        // ====================================================================
+        // Tabs Management
+        // ====================================================================
+        const DEFAULT_FALLBACK_TABS = [
+            { id: 'scratchpad', name: 'Scratchpad', mode: 'markdown', content: '# Welcome to Scratchpad\n\n- Press **Cmd/Ctrl + S** to quickly save\n- Type `/` to open the slash command menu\n- Drag and drop files anywhere on the canvas\n' },
+            { id: 'notes', name: 'Quick Notes', mode: 'text', content: 'Meeting notes, links, and quick terminal snippets.\n' }
+        ];
+
+        async function fetchTabs() {
+            try {
+                const res = await fetch(`${API_BASE}/tabs`);
+                tabs = await res.json();
+                if (!tabs || tabs.length === 0) tabs = [...DEFAULT_FALLBACK_TABS];
+                renderTabs();
+                loadTab(activeTabId);
+            } catch (err) {
+                console.error('Tabs fetch error:', err);
+                if (!tabs || tabs.length === 0) {
+                    tabs = [...DEFAULT_FALLBACK_TABS];
+                    renderTabs();
+                    loadTab('scratchpad');
+                }
+            }
+        }
+
+        function renderTabs() {
+            const container = document.getElementById('tabsHeaderBar');
+            const newBtn = container.querySelector('.new-tab-btn');
+
+            container.querySelectorAll('.notepad-tab').forEach(el => el.remove());
+
+            tabs.forEach(tab => {
+                const tabEl = document.createElement('button');
+                tabEl.className = `notepad-tab ${tab.id === activeTabId ? 'active' : ''}`;
+                tabEl.onclick = () => loadTab(tab.id);
+
+                const iconSvg = tab.mode === 'code' ? ICONS.code : ICONS.doc;
+                const canClose = !['scratchpad', 'notes'].includes(tab.id);
+
+                tabEl.innerHTML = `
+                    <span class="svg-icon">${iconSvg}</span>
+                    <span>${escapeHtml(tab.name)}</span>
+                    ${canClose ? `<span class="tab-close-btn" onclick="event.stopPropagation(); closeTab('${tab.id}')">${ICONS.x}</span>` : ''}
+                `;
+                container.insertBefore(tabEl, newBtn);
+            });
+        }
+
+        function loadTab(id) {
+            activeTabId = id;
+            let tab = tabs.find(t => t.id === id);
+            if (!tab) {
+                activeTabId = tabs[0]?.id || 'scratchpad';
+                tab = tabs[0];
+            }
+            if (!tab) return;
+
+            renderTabs();
+            document.getElementById('docTitle').value = tab.name;
+            document.getElementById('breadcrumbCurrent').textContent = tab.name;
+
+            const ta = document.getElementById('editorTextarea');
+            ta.value = tab.content || '';
+            updateGutter();
+            updateStats();
+            if (editorMode === 'preview') renderMarkdown();
+            if (window.innerWidth <= 900) switchMobileView('editor');
+        }
+
+        async function createNewTab() {
+            const name = prompt('Tab title:', 'New Scratchpad');
+            if (!name) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/tabs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name.trim() })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    tabs.push(data.tab);
+                    loadTab(data.tab.id);
+                }
+            } catch (e) {
+                showToast('Failed to create tab', 'error');
+            }
+        }
+
+        async function closeTab(id) {
+            try {
+                await fetch(`${API_BASE}/tabs/${id}`, { method: 'DELETE' });
+                tabs = tabs.filter(t => t.id !== id);
+                if (activeTabId === id) activeTabId = tabs[0]?.id || 'scratchpad';
+                renderTabs();
+                loadTab(activeTabId);
+            } catch (e) {
+                showToast('Failed to delete tab', 'error');
+            }
+        }
+
+        function handleTitleChange(val) {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab) {
+                tab.name = val || 'Untitled';
+                document.getElementById('breadcrumbCurrent').textContent = tab.name;
+                renderTabs();
+                scheduleTabSave();
+            }
+        }
+
+        function scheduleTabSave() {
+            setAutosaveStatus('Saving...');
+            clearTimeout(saveDebounceTimer);
+            saveDebounceTimer = setTimeout(async () => {
+                const tab = tabs.find(t => t.id === activeTabId);
+                const content = document.getElementById('editorTextarea').value;
+                if (!tab) return;
+                tab.content = content;
+
+                try {
+                    await fetch(`${API_BASE}/tabs/${activeTabId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(tab)
+                    });
+                    setAutosaveStatus('Synced');
+                } catch (e) {
+                    setAutosaveStatus('Offline');
+                }
+            }, 600);
+        }
+
+        function setAutosaveStatus(text) {
+            const el = document.getElementById('autosaveText');
+            if (el) el.textContent = text;
+        }
+
+        // ====================================================================
+        // Textarea & Editor Ergonomics
+        // ====================================================================
+        const textarea = document.getElementById('editorTextarea');
+
+        textarea.addEventListener('input', () => {
+            updateGutter();
+            updateStats();
+            scheduleTabSave();
+            checkSlashTrigger();
+        });
+        textarea.addEventListener('keyup', updateCursorStats);
+        textarea.addEventListener('click', updateCursorStats);
+
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                textarea.value = textarea.value.substring(0, start) + '  ' + textarea.value.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + 2;
+                updateGutter();
+                updateStats();
+                scheduleTabSave();
+            }
+            if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                e.preventDefault();
+                publishCurrentNote();
+            }
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                e.preventDefault();
+                publishCurrentNote();
+            }
+        });
+
+        function updateGutter() {
+            const lines = (textarea.value.match(/\n/g) || []).length + 1;
+            const gutter = document.getElementById('editorGutter');
+            gutter.innerHTML = Array.from({ length: lines }, (_, i) => i + 1).join('<br>');
+        }
+
+        function updateStats() {
+            const text = textarea.value;
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const chars = text.length;
+            document.getElementById('statWordCount').textContent = `${words} words`;
+            document.getElementById('statCharCount').textContent = `${chars} chars`;
+        }
+
+        function updateCursorStats() {
+            const text = textarea.value.substring(0, textarea.selectionStart);
+            const line = (text.match(/\n/g) || []).length + 1;
+            const col = text.length - text.lastIndexOf('\n');
+            document.getElementById('statLineCol').textContent = `Ln ${line}, Col ${col}`;
+        }
+
+        function toggleMonoFont() {
+            textarea.classList.toggle('mono-mode');
+            document.getElementById('btnMonoFont').classList.toggle('active');
+        }
+
+        function setEditorMode(mode) {
+            editorMode = mode;
+            const editBtn = document.getElementById('btnEditMode');
+            const prevBtn = document.getElementById('btnPreviewMode');
+            const previewPane = document.getElementById('markdownPreviewPane');
+
+            if (mode === 'preview') {
+                renderMarkdown();
+                previewPane.classList.add('active');
+                prevBtn.classList.add('active');
+                editBtn.classList.remove('active');
+            } else {
+                previewPane.classList.remove('active');
+                editBtn.classList.add('active');
+                prevBtn.classList.remove('active');
+                textarea.focus();
+            }
+        }
+
+        async function copyEditorText() {
+            const text = textarea.value;
+            if (!text) {
+                showToast('Nothing to copy', 'error');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('Copied to clipboard');
+            } catch (err) {
+                fallbackCopy(text);
+            }
+        }
+
+        function clearEditor() {
+            if (confirm('Clear current note?')) {
+                textarea.value = '';
+                updateGutter();
+                updateStats();
+                scheduleTabSave();
+                showToast('Cleared note');
+            }
+        }
+
+        // ====================================================================
+        // Slash Commands
+        // ====================================================================
+        function checkSlashTrigger() {
+            const cursor = textarea.selectionStart;
+            const text = textarea.value;
+            const lastWord = text.slice(0, cursor).split(/\s/).pop();
+            const slashMenu = document.getElementById('slashMenu');
+            if (lastWord === '/') {
+                slashMenu.classList.add('visible');
+            } else {
+                slashMenu.classList.remove('visible');
+            }
+        }
+
+        function triggerSlashMenu() {
+            document.getElementById('slashMenu').classList.toggle('visible');
+        }
+
+        function insertSlashCommand(snippet) {
+            const cursor = textarea.selectionStart;
+            const text = textarea.value;
+            const beforeSlash = text.slice(0, cursor).replace(/\/$/, '');
+            const afterSlash = text.slice(cursor);
+
+            textarea.value = beforeSlash + snippet + afterSlash;
+            textarea.selectionStart = textarea.selectionEnd = beforeSlash.length + snippet.length;
+            document.getElementById('slashMenu').classList.remove('visible');
+            textarea.focus();
+            updateGutter();
+            updateStats();
+            scheduleTabSave();
+        }
+
+        // Markdown Engine
+        function renderMarkdown() {
+            const raw = textarea.value;
+            const pane = document.getElementById('markdownPreviewPane');
+
+            let html = escapeHtml(raw);
+            html = html.replace(/```([a-z]*)\n([\s\S]*?)```/gi, (match, lang, code) => {
+                return `<pre><button class="mini-btn" style="position: absolute; right: 8px; top: 6px;" onclick="copyRawCode(this)">Copy</button><code>${code.trim()}</code></pre>`;
+            });
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            html = html.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>');
+            html = html.replace(/^---$/gim, '<hr>');
+            html = html.replace(/^- \[ \] (.*$)/gim, '<div style="display:flex;gap:8px;margin:4px 0;"><input type="checkbox"> <span>$1</span></div>');
+            html = html.replace(/^- \[x\] (.*$)/gim, '<div style="display:flex;gap:8px;margin:4px 0;"><input type="checkbox" checked> <del>$1</del></div>');
+            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--text-accent);text-decoration:underline;">$1</a>');
+            html = html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:var(--text-accent);text-decoration:underline;">$1</a>');
+            html = html.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+
+            pane.innerHTML = `<p>${html}</p>`;
+        }
+
+        function copyRawCode(btn) {
+            const code = btn.nextElementSibling.textContent;
+            navigator.clipboard.writeText(code).then(() => showToast('Code copied!'));
+        }
+
+        // ====================================================================
+        // Items & Feed Rendering (Cleaned Formatting & No Emojis)
+        // ====================================================================
+        async function fetchAllItems() {
+            try {
+                const res = await fetch(`${API_BASE}/items`);
+                allItems = await res.json();
+                renderFeed();
+                updateBadgeCounts();
+            } catch (err) {
+                console.error('Failed to load items:', err);
+            }
+        }
+
+        async function publishCurrentNote() {
+            const text = textarea.value.trim();
+            const title = document.getElementById('docTitle').value.trim();
+            if (!text) {
+                showToast('Cannot save an empty note', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/items`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: title || undefined,
+                        content: text,
+                        tabId: activeTabId
+                    })
+                });
+                if (res.ok) {
+                    showToast('Saved clip to history');
+                    await fetchAllItems();
+                } else {
+                    showToast('Failed to save clip', 'error');
+                }
+            } catch (e) {
+                showToast('Connection error', 'error');
+            }
+        }
+
+        function renderFeed() {
+            const container = document.getElementById('feedListContainer');
+            let filtered = [...allItems];
+
+            if (currentFilter === 'pinned') {
+                filtered = filtered.filter(i => i.pinned);
+            } else if (currentFilter === 'link') {
+                filtered = filtered.filter(i => i.type === 'link' || (i.content && i.content.startsWith('http')));
+            } else if (currentFilter === 'code') {
+                filtered = filtered.filter(i => i.type === 'code' || i.fileType === 'code');
+            } else if (currentFilter === 'file') {
+                filtered = filtered.filter(i => i.type === 'file');
+            } else if (currentFilter === 'text') {
+                filtered = filtered.filter(i => (i.type === 'text' || i.type === 'markdown') && !i.content.startsWith('http'));
+            }
+
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                filtered = filtered.filter(i => 
+                    (i.title && i.title.toLowerCase().includes(q)) ||
+                    (i.content && i.content.toLowerCase().includes(q)) ||
+                    (i.name && i.name.toLowerCase().includes(q)) ||
+                    (i.tags && i.tags.some(t => t.toLowerCase().includes(q)))
+                );
+            }
+
+            document.getElementById('feedCountPill').textContent = filtered.length;
+            const segCount = document.getElementById('segClipsCount'); if (segCount) segCount.textContent = filtered.length;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div style="padding: 40px 16px; text-align: center; color: var(--text-tertiary);">
+                        <div style="margin-bottom: 8px;">${ICONS.file}</div>
+                        <div style="font-size: 13px;">No items found</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(item => {
+                const isPinned = item.pinned;
+                const isFile = item.type === 'file' || !!item.filename;
+                const content = item.content || '';
+                const timeAgo = getTimeAgo(new Date(item.updatedAt || item.timestamp));
+                const isLink = item.type === 'link' || content.startsWith('http://') || content.startsWith('https://');
+                const isCode = item.type === 'code' || item.fileType === 'code';
+                const fileType = item.fileType || (isFile ? 'file' : item.type);
+
+                // Type Icon & Label
+                let typeIcon = ICONS.doc;
+                let typeLabel = 'Note';
+                if (isLink) { typeIcon = ICONS.link; typeLabel = 'Link'; }
+                else if (isCode) { typeIcon = ICONS.code; typeLabel = 'Code'; }
+                else if (fileType === 'image') { typeIcon = ICONS.image; typeLabel = 'Image'; }
+                else if (fileType === 'video') { typeIcon = ICONS.video; typeLabel = 'Video'; }
+                else if (fileType === 'audio') { typeIcon = ICONS.audio; typeLabel = 'Audio'; }
+                else if (fileType === 'markdown') { typeIcon = ICONS.doc; typeLabel = 'Markdown'; }
+                else if (fileType === 'pdf') { typeIcon = ICONS.file; typeLabel = 'Document'; }
+
+                // Determine if title is redundant
+                const hasDistinctTitle = item.title && item.title !== content && !content.startsWith(item.title);
+
+                // Tags HTML
+                const tagsHtml = (item.tags && item.tags.length) ? `
+                    <div class="card-tags-row">
+                        ${item.tags.map(t => `<span class="mini-tag">#${escapeHtml(t)}</span>`).join('')}
+                    </div>
+                ` : '';
+
+                // Body formatting
+                let bodyHtml = '';
+                if (isLink) {
+                    const rawLines = content.split('\n').map(l => l.trim()).filter(Boolean);
+                    bodyHtml = `
+                        <div class="rich-link-card" onclick="event.stopPropagation()">
+                            ${rawLines.map(url => {
+                                let domain = url;
+                                try { domain = new URL(url).hostname; } catch(e) {}
+                                const targetUrl = url.startsWith('http') ? url : `https://${url}`;
+                                return `
+                                    <div class="link-item-row">
+                                        <div class="link-domain-badge">
+                                            <span class="svg-icon">${ICONS.link}</span>
+                                            <span>${escapeHtml(domain)}</span>
+                                        </div>
+                                        <div class="link-url-text">${escapeHtml(url)}</div>
+                                        <div class="link-footer-actions">
+                                            <button class="mini-btn" onclick="copyText('${escapeJsString(url)}')">Copy URL</button>
+                                            <a href="${escapeHtml(targetUrl)}" target="_blank" rel="noopener" class="link-action-link">
+                                                <span>Open</span>
+                                                <span class="svg-icon">${ICONS.external}</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                } else if (isCode) {
+                    bodyHtml = `
+                        <div class="code-snippet-box" onclick="event.stopPropagation()">
+                            <code>${escapeHtml(content)}</code>
+                        </div>
+                    `;
+                } else if (isFile && item.filename) {
+                    const fileUrl = `${API_BASE}/file/${encodeURIComponent(item.filename)}`;
+                    const sizeStr = formatFileSize(item.size || 0);
+
+                    if (fileType === 'image') {
+                        bodyHtml = `
+                            <div class="media-preview-container">
+                                <img src="${fileUrl}" class="media-image-thumb" onclick="openLightbox('${fileUrl}')" alt="${escapeHtml(item.title || '')}">
+                            </div>
+                            <div style="margin-top: 6px; display: flex; justify-content: space-between;" class="file-meta-pill">
+                                <span>${sizeStr}</span>
+                                <span>Click to zoom</span>
+                            </div>
+                        `;
+                    } else if (fileType === 'audio') {
+                        bodyHtml = `
+                            <div class="media-preview-container" style="padding: 6px;">
+                                <audio controls class="media-audio-player" preload="metadata">
+                                    <source src="${fileUrl}" type="${item.mimetype || 'audio/mpeg'}">
+                                </audio>
+                            </div>
+                            <div style="margin-top: 4px;" class="file-meta-pill">${sizeStr}</div>
+                        `;
+                    } else if (fileType === 'video') {
+                        bodyHtml = `
+                            <div class="media-preview-container">
+                                <video controls class="media-video-player" preload="metadata">
+                                    <source src="${fileUrl}" type="${item.mimetype || 'video/mp4'}">
+                                </video>
+                            </div>
+                            <div style="margin-top: 4px;" class="file-meta-pill">${sizeStr}</div>
+                        `;
+                    } else {
+                        bodyHtml = `
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;" class="file-meta-pill">
+                                <span>${sizeStr}</span>
+                                <button class="mini-btn" onclick="downloadClipFile('${item.filename}', '${escapeJsString(item.name || item.title)}')">Download</button>
+                            </div>
+                        `;
+                    }
+                } else {
+                    bodyHtml = `<div class="card-snippet">${escapeHtml(content)}</div>`;
+                }
+
+                return `
+                    <div class="clip-card ${isPinned ? 'pinned' : ''}" onclick="selectClipItem('${item.id}')">
+                        <div class="card-meta-row">
+                            <div class="card-type-tag">
+                                <span class="svg-icon">${typeIcon}</span>
+                                <span>${typeLabel}</span>
+                                <span style="opacity: 0.4;">•</span>
+                                <span style="font-weight: 400; text-transform: none; color: var(--text-tertiary);">${timeAgo}</span>
+                            </div>
+                            <div class="card-actions-hover" onclick="event.stopPropagation()">
+                                <button class="mini-btn ${isPinned ? 'pinned' : ''}" onclick="togglePin('${item.id}')" title="Pin / Unpin">
+                                    ${isPinned ? ICONS.starFilled : ICONS.star}
+                                </button>
+                                <button class="mini-btn" onclick="copyClipContent('${item.id}')" title="Copy Content">
+                                    ${ICONS.copy}
+                                </button>
+                                ${isFile ? `
+                                    <button class="mini-btn" onclick="downloadClipFile('${item.filename}', '${escapeJsString(item.name || item.title)}')" title="Download">
+                                        ${ICONS.download}
+                                    </button>
+                                ` : ''}
+                                <button class="mini-btn" onclick="deleteClip('${item.id}')" title="Delete">
+                                    ${ICONS.trash}
+                                </button>
+                            </div>
+                        </div>
+
+                        ${(hasDistinctTitle || isFile) ? `<div class="card-title">${escapeHtml(item.title || item.name || 'Untitled')}</div>` : ''}
+                        ${bodyHtml}
+                        ${tagsHtml}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateBadgeCounts() {
+            document.getElementById('badgeAll').textContent = allItems.length;
+            document.getElementById('badgePinned').textContent = allItems.filter(i => i.pinned).length;
+            document.getElementById('badgeLinks').textContent = allItems.filter(i => i.type === 'link' || (i.content && i.content.startsWith('http'))).length;
+            document.getElementById('badgeCode').textContent = allItems.filter(i => i.type === 'code' || i.fileType === 'code').length;
+            document.getElementById('badgeFiles').textContent = allItems.filter(i => i.type === 'file').length;
+
+            const tagCounts = {};
+            allItems.forEach(i => {
+                if (Array.isArray(i.tags)) {
+                    i.tags.forEach(t => tagCounts[t] = (tagCounts[t] || 0) + 1);
+                }
+            });
+
+            const tagsContainer = document.getElementById('tagPillsContainer');
+            tagsContainer.innerHTML = Object.entries(tagCounts).slice(0, 8).map(([tag, count]) => `
+                <button class="tag-pill" onclick="handleTagClick('${tag}')">
+                    <span>#${escapeHtml(tag)}</span>
+                    <span style="opacity: 0.6; font-size: 10px;">${count}</span>
+                </button>
+            `).join('');
+        }
+
+        function setFeedFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.feed-filter-bar .tag-pill').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('onclick')?.includes(filter));
+            });
+            document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
+                item.classList.toggle('active', item.getAttribute('onclick')?.includes(filter));
+            });
+            renderFeed();
+            if (window.innerWidth <= 900) {
+                closeSidebarDrawer();
+                switchMobileView('clips');
+            }
+        }
+
+        function handleTagClick(tag) {
+            searchQuery = tag;
+            document.getElementById('sidebarSearch').value = tag;
+            renderFeed();
+            if (window.innerWidth <= 900) {
+                closeSidebarDrawer();
+                switchMobileView('clips');
+            }
+        }
+
+        function handleSearch(val) {
+            searchQuery = val.trim();
+            renderFeed();
+        }
+
+        function selectClipItem(id) {
+            const item = allItems.find(i => String(i.id) === String(id));
+            if (!item) return;
+
+            if (item.content) {
+                textarea.value = item.content;
+                document.getElementById('docTitle').value = item.title || 'Loaded Clip';
+                updateGutter();
+                updateStats();
+                setEditorMode('edit');
+                showToast('Loaded into editor');
+                if (window.innerWidth <= 900) switchMobileView('editor');
+            } else if (item.filename) {
+                if (item.fileType === 'image') {
+                    openLightbox(`${API_BASE}/file/${encodeURIComponent(item.filename)}`);
+                } else {
+                    downloadClipFile(item.filename, item.name);
+                }
+            }
+        }
+
+        async function togglePin(id) {
+            try {
+                const res = await fetch(`${API_BASE}/items/${id}/pin`, { method: 'PATCH' });
+                if (res.ok) {
+                    const data = await res.json();
+                    const item = allItems.find(i => String(i.id) === String(id));
+                    if (item) item.pinned = data.item.pinned;
+                    renderFeed();
+                    updateBadgeCounts();
+                    showToast(data.item.pinned ? 'Pinned to top' : 'Unpinned');
+                }
+            } catch (e) {
+                showToast('Failed to toggle pin', 'error');
+            }
+        }
+
+        async function copyClipContent(id) {
+            const item = allItems.find(i => String(i.id) === String(id));
+            if (!item) return;
+            const text = item.content || item.name || '';
+            copyText(text);
+        }
+
+        function copyText(text) {
+            if (!text) return;
+            navigator.clipboard.writeText(text)
+                .then(() => showToast('Copied to clipboard'))
+                .catch(() => fallbackCopy(text));
+        }
+
+        function downloadClipFile(filename, originalName) {
+            const link = document.createElement('a');
+            link.href = `${API_BASE}/file/${encodeURIComponent(filename)}?download=1`;
+            link.download = originalName || filename;
+            link.click();
+            showToast(`Downloading "${originalName || filename}"`);
+        }
+
+        async function deleteClip(id) {
+            if (!confirm('Delete this clip?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/items/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    allItems = allItems.filter(i => String(i.id) !== String(id));
+                    renderFeed();
+                    updateBadgeCounts();
+                    showToast('Clip deleted');
+                }
+            } catch (e) {
+                showToast('Failed to delete', 'error');
+            }
+        }
+
+        // ====================================================================
+        // File Uploads & Drag & Drop
+        // ====================================================================
+        async function uploadSelectedFiles(files) {
+            if (!files.length) return;
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                showToast(`Uploading "${file.name}"...`);
+
+                try {
+                    const res = await fetch(`${API_BASE}/file`, { method: 'POST', body: formData });
+                    if (res.ok) {
+                        showToast(`Uploaded "${file.name}"`);
+                        await fetchAllItems();
+                    } else {
+                        showToast(`Upload failed for "${file.name}"`, 'error');
+                    }
+                } catch (e) {
+                    showToast(`Error uploading "${file.name}"`, 'error');
+                }
+            }
+            document.getElementById('filePicker').value = '';
+        }
+
+        window.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            document.getElementById('dragOverlay').classList.add('active');
+        });
+        window.addEventListener('dragleave', (e) => {
+            if (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+                document.getElementById('dragOverlay').classList.remove('active');
+            }
+        });
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            document.getElementById('dragOverlay').classList.remove('active');
+            if (e.dataTransfer.files && e.dataTransfer.files.length) {
+                uploadSelectedFiles(e.dataTransfer.files);
+            }
+        });
+
+        // ====================================================================
+        // UI Helpers & Lightbox
+        // ====================================================================
+        function openLightbox(src) {
+            const modal = document.getElementById('lightboxModal');
+            document.getElementById('lightboxImg').src = src;
+            modal.classList.add('active');
+        }
+        function closeLightbox() {
+            document.getElementById('lightboxModal').classList.remove('active');
+        }
+
+        function showToast(msg, type = 'success') {
+            const shelf = document.getElementById('toastShelf');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<span class="svg-icon" style="color:${type==='error'?'var(--accent-rose)':'var(--accent-green)'}">${ICONS.check}</span><span>${escapeHtml(msg)}</span>`;
+            shelf.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                setTimeout(() => toast.remove(), 200);
+            }, 2600);
+        }
+
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('Copied to clipboard');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+        function escapeJsString(str) {
+            if (!str) return '';
+            return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function getTimeAgo(date) {
+            const diff = Date.now() - date.getTime();
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+            if (minutes < 1) return 'Just now';
+            if (minutes < 60) return `${minutes}m ago`;
+            if (hours < 24) return `${hours}h ago`;
+            if (days < 7) return `${days}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        // ====================================================================
+        // Mobile View & Drawer Engine
+        // ====================================================================
+        let currentMobileView = 'editor';
+
+        function switchMobileView(view) {
+            currentMobileView = view;
+            const split = document.querySelector('.workspace-split');
+            const segEditor = document.getElementById('segBtnEditor');
+            const segClips = document.getElementById('segBtnClips');
+            
+            if (view === 'clips') {
+                split?.classList.remove('view-editor');
+                split?.classList.add('view-clips');
+                segEditor?.classList.remove('active');
+                segClips?.classList.add('active');
+            } else {
+                split?.classList.remove('view-clips');
+                split?.classList.add('view-editor');
+                segClips?.classList.remove('active');
+                segEditor?.classList.add('active');
+            }
+        }
+
+        const sidebar = document.getElementById('sidebar');
+        const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+        const expandSidebarBtn = document.getElementById('expandSidebarBtn');
+        const collapseSidebarBtn = document.getElementById('collapseSidebarBtn');
+
+        function openSidebarDrawer() {
+            sidebar.classList.add('drawer-open');
+            sidebarBackdrop?.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebarDrawer() {
+            sidebar.classList.remove('drawer-open');
+            sidebarBackdrop?.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function toggleSidebar() {
+            if (window.innerWidth <= 900) {
+                if (sidebar.classList.contains('drawer-open')) {
+                    closeSidebarDrawer();
+                } else {
+                    openSidebarDrawer();
+                }
+            } else {
+                sidebar.classList.toggle('collapsed');
+                if (sidebar.classList.contains('collapsed')) {
+                    expandSidebarBtn.style.display = 'flex';
+                } else {
+                    expandSidebarBtn.style.display = 'none';
+                }
+            }
+        }
+
+        expandSidebarBtn?.addEventListener('click', toggleSidebar);
+        collapseSidebarBtn?.addEventListener('click', () => {
+            if (window.innerWidth <= 900) {
+                closeSidebarDrawer();
+            } else {
+                sidebar.classList.add('collapsed');
+                expandSidebarBtn.style.display = 'flex';
+            }
+        });
+        sidebarBackdrop?.addEventListener('click', closeSidebarDrawer);
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 900) {
+                closeSidebarDrawer();
+                if (!sidebar.classList.contains('collapsed')) {
+                    expandSidebarBtn.style.display = 'none';
+                }
+                const split = document.querySelector('.workspace-split');
+                split?.classList.remove('view-editor', 'view-clips');
+            } else {
+                expandSidebarBtn.style.display = 'flex';
+                switchMobileView(currentMobileView);
+            }
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+                e.preventDefault();
+                document.getElementById('sidebarSearch').focus();
+            }
+            if (e.key === 'Escape') {
+                closeSidebarDrawer();
+                closeLightbox();
+                document.getElementById('slashMenu').classList.remove('visible');
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initParallax();
+            initSSE();
+            fetchTabs();
+            fetchAllItems();
+            document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+        });
+    </script>
+</body>
+</html>
