@@ -5,6 +5,7 @@ node_modules/
 data/
 uploads/
 current-items-backup.json
+backups/
 *.db
 *.sqlite
 
@@ -15,6 +16,7 @@ current-items-backup.json
 
 # Editor / tooling
 .claude/
+.agents/
 .vscode/
 .idea/
 *.swp
@@ -23,5 +25,7 @@ current-items-backup.json
 # Logs & temp
 *.log
 npm-debug.log*
-*.tmp
+*.tmp*
+*.bak*
 *.pid
+

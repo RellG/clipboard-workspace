@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Clipboard — Modern Workspace</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -339,6 +339,19 @@
             background-color: var(--accent-green);
             border-radius: 50%;
             box-shadow: 0 0 8px var(--accent-green);
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .live-status.reconnecting .live-dot,
+        .live-status.is-reconnecting .live-dot,
+        .connection-status.reconnecting .live-dot,
+        .connection-status.badge-reconnecting .live-dot {
+            background-color: var(--accent-amber);
+            box-shadow: 0 0 8px var(--accent-amber);
+            animation: pulse-amber 1.5s infinite ease-in-out;
+        }
+        @keyframes pulse-amber {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
         }
 
         /* Main Workspace */
@@ -1287,6 +1300,13 @@
                 animation: mobileFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
             }
 
+            body.view-clips .tabs-header-bar,
+            .workspace-split.view-clips ~ .tabs-header-bar,
+            .tabs-header-bar.view-clips,
+            .view-clips #tabsHeaderBar {
+                display: none !important;
+            }
+
             /* Compact Margins & Paddings */
             .notion-doc-header {
                 padding: 14px 16px 8px 16px;
@@ -1432,12 +1452,7 @@
         /* Narrow Phones: <= 600px */
         @media (max-width: 600px) {
             .gutter {
-                width: 24px;
-                padding: 12px 0;
-                font-size: 10.5px;
-                line-height: 22px;
-                text-align: center;
-                padding-right: 0;
+                display: none !important;
             }
 
             .editor-status-bar {
@@ -1558,9 +1573,9 @@
             </nav>
 
             <div class="sidebar-footer">
-                <div class="live-status">
-                    <div class="live-dot"></div>
-                    <span>Live Sync (SSE)</span>
+                <div class="live-status connection-status" id="connectionStatus" title="Connection status">
+                    <div class="live-dot" id="connectionDot"></div>
+                    <span id="connectionText">Live Sync (SSE)</span>
                 </div>
                 <span id="clientCounter">Homelab Pi</span>
             </div>
@@ -1815,9 +1830,53 @@
         // ====================================================================
         // Real-Time SSE
         // ====================================================================
+        let isReconnecting = false;
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            const dotEl = document.getElementById('connectionDot');
+            const textEl = document.getElementById('connectionText');
+            if (connected) {
+                if (statusEl) {
+                    statusEl.classList.remove('reconnecting', 'is-reconnecting', 'badge-reconnecting');
+                    statusEl.classList.add('connected');
+                }
+                if (dotEl) {
+                    dotEl.style.backgroundColor = 'var(--accent-green)';
+                    dotEl.style.boxShadow = '0 0 8px var(--accent-green)';
+                }
+                if (textEl) textEl.textContent = 'Live Sync (Connected)';
+            } else {
+                if (statusEl) {
+                    statusEl.classList.remove('connected');
+                    statusEl.classList.add('reconnecting', 'is-reconnecting', 'badge-reconnecting');
+                }
+                if (dotEl) {
+                    dotEl.style.backgroundColor = 'var(--accent-amber)';
+                    dotEl.style.boxShadow = '0 0 8px var(--accent-amber)';
+                }
+                if (textEl) textEl.textContent = 'Reconnecting...';
+            }
+        }
+
         function initSSE() {
             if (sseSource) sseSource.close();
             sseSource = new EventSource(`${API_BASE}/events`);
+
+            sseSource.onopen = () => {
+                const wasReconnecting = isReconnecting;
+                isReconnecting = false;
+                updateConnectionStatus(true);
+                if (wasReconnecting) {
+                    fetchAllItems();
+                    fetchTabs();
+                }
+            };
+
+            sseSource.onerror = (err) => {
+                isReconnecting = true;
+                updateConnectionStatus(false);
+            };
 
             sseSource.addEventListener('item_created', (e) => {
                 const item = JSON.parse(e.data);
@@ -1844,6 +1903,15 @@
                 renderFeed();
             });
 
+            sseSource.addEventListener('tab_created', (e) => {
+                const tab = JSON.parse(e.data);
+                const exists = tabs.some(t => t.id === tab.id);
+                if (!exists) {
+                    tabs.push(tab);
+                    renderTabs();
+                }
+            });
+
             sseSource.addEventListener('tab_updated', (e) => {
                 const tab = JSON.parse(e.data);
                 const tIdx = tabs.findIndex(t => t.id === tab.id);
@@ -1859,6 +1927,15 @@
                             if (editorMode === 'preview') renderMarkdown();
                         }
                     }
+                }
+            });
+
+            sseSource.addEventListener('tab_deleted', (e) => {
+                const { id } = JSON.parse(e.data);
+                tabs = tabs.filter(t => t.id !== id);
+                renderTabs();
+                if (activeTabId === id && tabs.length > 0) {
+                    switchTab(tabs[0].id);
                 }
             });
         }
@@ -2166,8 +2243,8 @@
         }
 
         function copyRawCode(btn) {
-            const code = btn.nextElementSibling.textContent;
-            navigator.clipboard.writeText(code).then(() => showToast('Code copied!'));
+            const code = btn.nextElementSibling ? btn.nextElementSibling.textContent : '';
+            copyText(code);
         }
 
         // ====================================================================
@@ -2495,9 +2572,13 @@
 
         function copyText(text) {
             if (!text) return;
-            navigator.clipboard.writeText(text)
-                .then(() => showToast('Copied to clipboard'))
-                .catch(() => fallbackCopy(text));
+            if (window.isSecureContext && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                navigator.clipboard.writeText(text)
+                    .then(() => showToast('Copied to clipboard'))
+                    .catch(() => fallbackCopy(text));
+            } else {
+                fallbackCopy(text);
+            }
         }
 
         function downloadClipFile(filename, originalName) {

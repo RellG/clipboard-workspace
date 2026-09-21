@@ -6,11 +6,16 @@ services:
     container_name: relllab-clipboard
     ports:
       - "8084:80"   # Frontend (nginx)
-      - "3000:3000" # Backend API
     restart: unless-stopped
     volumes:
       - ./uploads:/app/uploads  # Persist uploaded files
       - ./data:/app/data        # Persist database & state
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/api/health | grep -q '\"status\":\"healthy\"' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - clipboard-network
 

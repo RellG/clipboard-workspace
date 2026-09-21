@@ -19,8 +19,12 @@ WORKDIR /app
 COPY index.html /usr/share/nginx/html/
 COPY nginx.conf /etc/nginx/nginx.conf
 
-RUN echo '#!/bin/sh' > /start.sh &&     echo 'mkdir -p /app/uploads /app/data' >> /start.sh &&     echo 'cd /app && node server.js &' >> /start.sh &&     echo 'nginx -g "daemon off;"' >> /start.sh &&     chmod +x /start.sh
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
-EXPOSE 80 3000
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://127.0.0.1/api/health | grep -q '"status":"healthy"' || exit 1
 
 CMD ["/start.sh"]
