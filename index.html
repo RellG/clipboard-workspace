@@ -1062,26 +1062,259 @@
             100% { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* Lightbox */
+        /* ==================================================================== */
+        /* Enhanced Lightbox Photo Gallery & Media Actions                      */
+        /* ==================================================================== */
         .lightbox-modal {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.92);
-            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.94);
+            backdrop-filter: blur(12px);
             z-index: 1500;
             display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 0;
+            outline: none;
+            overflow: hidden;
+            user-select: none;
+        }
+        .lightbox-modal.active {
+            display: flex;
+        }
+        .lightbox-backdrop {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+        .lightbox-header {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: rgba(18, 18, 20, 0.75);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            gap: 12px;
+        }
+        .lightbox-title-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .lightbox-filename {
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 320px;
+        }
+        .lightbox-meta-badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
+        .lightbox-counter-badge {
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            font-weight: 500;
+            background: var(--accent-glow);
+            color: var(--text-accent);
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        .lightbox-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .lightbox-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #f4f4f5;
+            border-radius: var(--radius-sm);
+            padding: 6px 12px;
+            font-size: 12.5px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .lightbox-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+        }
+        .lightbox-btn.danger {
+            background: rgba(244, 63, 94, 0.15);
+            border-color: rgba(244, 63, 94, 0.35);
+            color: var(--accent-rose);
+        }
+        .lightbox-btn.danger:hover {
+            background: var(--accent-rose);
+            color: #ffffff;
+            border-color: var(--accent-rose);
+        }
+        .lightbox-btn.close {
+            padding: 6px 8px;
+        }
+        .lightbox-main-stage {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex: 1;
+            padding: 0 16px;
+            overflow: hidden;
+            width: 100%;
+        }
+        .lightbox-img-wrapper {
+            flex: 1;
+            display: flex;
             align-items: center;
             justify-content: center;
-            padding: 24px;
+            height: 100%;
+            max-height: calc(100vh - 120px);
+            pointer-events: none;
         }
-        .lightbox-modal.active { display: flex; }
         .lightbox-content {
-            max-width: 90vw;
-            max-height: 90vh;
-            border-radius: var(--radius-md);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            max-width: 88vw;
+            max-height: calc(100vh - 130px);
             object-fit: contain;
+            border-radius: var(--radius-md);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            pointer-events: auto;
         }
+        .lightbox-nav-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            transition: all 0.15s ease;
+            z-index: 15;
+            flex-shrink: 0;
+        }
+        .lightbox-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.08);
+            border-color: rgba(255, 255, 255, 0.35);
+        }
+        .lightbox-nav-btn:active {
+            transform: scale(0.96);
+        }
+        .lightbox-footer {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
+            font-size: 11.5px;
+            color: var(--text-tertiary);
+            background: rgba(18, 18, 20, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .lightbox-nav-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Card Media Footer Actions */
+        .card-media-footer-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px solid var(--border-subtle);
+        }
+        .card-media-actions-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .media-action-pill-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11.5px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.12s;
+        }
+        .media-action-pill-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+        }
+        .media-action-pill-btn.primary {
+            color: var(--text-accent);
+            border-color: rgba(56, 189, 248, 0.25);
+            background: rgba(56, 189, 248, 0.08);
+        }
+        .media-action-pill-btn.primary:hover {
+            background: var(--text-accent);
+            color: #000;
+        }
+        .media-action-pill-btn.danger {
+            color: var(--accent-rose);
+            border-color: rgba(244, 63, 94, 0.25);
+            background: rgba(244, 63, 94, 0.08);
+        }
+        .media-action-pill-btn.danger:hover {
+            background: var(--accent-rose);
+            color: #fff;
+        }
+
+        .ft-thumb-cell {
+            width: 38px;
+            height: 38px;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: zoom-in;
+            border: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+            transition: transform 0.12s, border-color 0.12s;
+        }
+        .ft-thumb-cell:hover {
+            transform: scale(1.08);
+            border-color: var(--text-accent);
+        }
+        .ft-thumb-cell img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
 
         .mini-btn {
             background: transparent;
@@ -1872,10 +2105,57 @@
         <div style="font-size: 12.5px; color: var(--text-secondary);">Images, Audio, Videos, Documents up to 100MB</div>
     </div>
 
-    <!-- Lightbox Modal -->
-    <div class="lightbox-modal" id="lightboxModal" onclick="closeLightbox()">
-        <img class="lightbox-content" id="lightboxImg" src="" alt="Preview">
+    <!-- Lightbox Photo Viewer Modal -->
+    <div class="lightbox-modal" id="lightboxModal" tabindex="0">
+        <!-- Lightbox Backdrop -->
+        <div class="lightbox-backdrop" onclick="closeLightbox()"></div>
+
+        <!-- Top Header Bar -->
+        <div class="lightbox-header" onclick="event.stopPropagation()">
+            <div class="lightbox-title-info">
+                <span class="lightbox-filename" id="lightboxFilename">Photo</span>
+                <span class="lightbox-meta-badge" id="lightboxMeta">0 B</span>
+                <span class="lightbox-counter-badge" id="lightboxCounter">1 / 1</span>
+            </div>
+            <div class="lightbox-header-actions">
+                <button class="lightbox-btn" id="lightboxDownloadBtn" onclick="downloadCurrentGalleryPhoto()" title="Download photo">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>Download</span>
+                </button>
+                <button class="lightbox-btn danger" id="lightboxDeleteBtn" onclick="deleteCurrentGalleryPhoto()" title="Delete photo from storage">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <span>Delete</span>
+                </button>
+                <button class="lightbox-btn close" onclick="closeLightbox()" title="Close viewer (Esc)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Photo Stage with Navigation Chevrons -->
+        <div class="lightbox-main-stage">
+            <button class="lightbox-nav-btn" id="lightboxPrevBtn" onclick="prevGalleryPhoto(event)" title="Previous photo (← or Scroll Up)">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+
+            <div class="lightbox-img-wrapper" onclick="closeLightbox()">
+                <img class="lightbox-content" id="lightboxImg" src="" alt="Preview" onclick="event.stopPropagation()">
+            </div>
+
+            <button class="lightbox-nav-btn" id="lightboxNextBtn" onclick="nextGalleryPhoto(event)" title="Next photo (→ or Scroll Down)">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+        </div>
+
+        <!-- Bottom Navigation Guide -->
+        <div class="lightbox-footer" onclick="event.stopPropagation()">
+            <span class="lightbox-nav-hint">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="3" width="12" height="18" rx="6"></rect><line x1="12" y1="7" x2="12" y2="11"></line></svg>
+                Scroll mouse wheel, swipe, or use ← / → arrow keys to browse photos • Del to delete
+            </span>
+        </div>
     </div>
+
 
     <!-- App Layout -->
     <div class="app-layout">
@@ -2875,14 +3155,28 @@
                     const fileUrl = `${API_BASE}/file/${encodeURIComponent(item.filename)}`;
                     const sizeStr = formatFileSize(item.size || 0);
 
+                    const safeItemName = escapeJsString(item.name || item.title || 'file');
                     if (fileType === 'image') {
                         bodyHtml = `
                             <div class="media-preview-container">
-                                <img src="${fileUrl}" class="media-image-thumb" onclick="openLightbox('${fileUrl}')" alt="${escapeHtml(item.title || '')}">
+                                <img src="${fileUrl}" class="media-image-thumb" onclick="openLightbox('${item.id}')" alt="${escapeHtml(item.title || '')}" title="Click to view & scroll photos">
                             </div>
-                            <div style="margin-top: 6px; display: flex; justify-content: space-between;" class="file-meta-pill">
-                                <span>${sizeStr}</span>
-                                <span>Click to zoom</span>
+                            <div class="card-media-footer-actions" onclick="event.stopPropagation()">
+                                <span class="file-meta-pill">${sizeStr}</span>
+                                <div class="card-media-actions-group">
+                                    <button class="media-action-pill-btn primary" onclick="openLightbox('${item.id}')" title="Open photo gallery viewer">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                                        <span>View</span>
+                                    </button>
+                                    <button class="media-action-pill-btn" onclick="downloadClipFile('${item.filename}', '${safeItemName}')" title="Download photo">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                        <span>Download</span>
+                                    </button>
+                                    <button class="media-action-pill-btn danger" onclick="deleteClip('${item.id}')" title="Delete photo from homelab">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        <span>Delete</span>
+                                    </button>
+                                </div>
                             </div>
                         `;
                     } else if (fileType === 'audio') {
@@ -2892,7 +3186,19 @@
                                     <source src="${fileUrl}" type="${item.mimetype || 'audio/mpeg'}">
                                 </audio>
                             </div>
-                            <div style="margin-top: 4px;" class="file-meta-pill">${sizeStr}</div>
+                            <div class="card-media-footer-actions" onclick="event.stopPropagation()">
+                                <span class="file-meta-pill">${sizeStr}</span>
+                                <div class="card-media-actions-group">
+                                    <button class="media-action-pill-btn" onclick="downloadClipFile('${item.filename}', '${safeItemName}')" title="Download audio">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                        <span>Download</span>
+                                    </button>
+                                    <button class="media-action-pill-btn danger" onclick="deleteClip('${item.id}')" title="Delete audio">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        <span>Delete</span>
+                                    </button>
+                                </div>
+                            </div>
                         `;
                     } else if (fileType === 'video') {
                         bodyHtml = `
@@ -2901,16 +3207,38 @@
                                     <source src="${fileUrl}" type="${item.mimetype || 'video/mp4'}">
                                 </video>
                             </div>
-                            <div style="margin-top: 4px;" class="file-meta-pill">${sizeStr}</div>
+                            <div class="card-media-footer-actions" onclick="event.stopPropagation()">
+                                <span class="file-meta-pill">${sizeStr}</span>
+                                <div class="card-media-actions-group">
+                                    <button class="media-action-pill-btn" onclick="downloadClipFile('${item.filename}', '${safeItemName}')" title="Download video">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                        <span>Download</span>
+                                    </button>
+                                    <button class="media-action-pill-btn danger" onclick="deleteClip('${item.id}')" title="Delete video">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        <span>Delete</span>
+                                    </button>
+                                </div>
+                            </div>
                         `;
                     } else {
                         bodyHtml = `
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;" class="file-meta-pill">
-                                <span>${sizeStr}</span>
-                                <button class="mini-btn" onclick="downloadClipFile('${item.filename}', '${escapeJsString(item.name || item.title)}')">Download</button>
+                            <div class="card-media-footer-actions" onclick="event.stopPropagation()">
+                                <span class="file-meta-pill">${sizeStr}</span>
+                                <div class="card-media-actions-group">
+                                    <button class="media-action-pill-btn" onclick="downloadClipFile('${item.filename}', '${safeItemName}')" title="Download file">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                        <span>Download</span>
+                                    </button>
+                                    <button class="media-action-pill-btn danger" onclick="deleteClip('${item.id}')" title="Delete file">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        <span>Delete</span>
+                                    </button>
+                                </div>
                             </div>
                         `;
                     }
+
                 } else {
                     bodyHtml = `<div class="card-snippet">${escapeHtml(content)}</div>`;
                 }
@@ -3228,13 +3556,18 @@
                 const safeSize = formatFileSize(file.size);
                 const safeDate = file.createdAt ? new Date(file.createdAt).toLocaleString() : 'N/A';
 
+                const isImg = fileType === 'image';
+                const thumbCell = isImg 
+                    ? `<div class="ft-thumb-cell" onclick="openLightbox('${safeId}')" title="Preview and scroll photos"><img src="${API_BASE}/file/${encodeURIComponent(file.filename)}" alt="thumb"></div>`
+                    : `<div class="ft-file-icon">${iconSvg}</div>`;
+
                 return `
                     <tr>
                         <td>
                             <div class="ft-file-cell">
-                                <div class="ft-file-icon">${iconSvg}</div>
+                                ${thumbCell}
                                 <div class="ft-file-info">
-                                    <span class="ft-file-name" onclick="downloadFtFile('${safeId}', '${safeJsName}')" title="Click to Download ${safeName}">${safeName}</span>
+                                    <span class="ft-file-name" onclick="${isImg ? `openLightbox('${safeId}')` : `downloadFtFile('${safeId}', '${safeJsName}')`}" title="${isImg ? 'Click to view photo & scroll' : `Click to download ${safeName}`}">${safeName}</span>
                                     <span class="ft-file-mimetype">${escapeHtml(file.mimetype || 'raw')}</span>
                                 </div>
                             </div>
@@ -3268,6 +3601,7 @@
                         </td>
                     </tr>
                 `;
+
             }).join('');
         }
 
@@ -3400,14 +3734,185 @@
             }
         }
 
-        function openLightbox(src) {
+        // ====================================================================
+        // Lightbox Photo Gallery Viewer Engine (Scroll, Swipe, Delete, Nav)
+        // ====================================================================
+        let galleryPhotos = [];
+        let currentGalleryIndex = 0;
+        let lastWheelNavTime = 0;
+
+        function getAvailableGalleryPhotos() {
+            const list = [];
+            const seen = new Set();
+            const sourceList = (currentAppView === 'file-transfer' && ftStoredFiles.length) ? ftStoredFiles : allItems;
+
+            sourceList.forEach(item => {
+                const isFile = item.type === 'file' || !!item.filename;
+                const fileType = item.fileType || (isFile ? 'file' : item.type);
+                const filename = item.filename || '';
+                const ext = (filename.split('.').pop() || '').toLowerCase();
+                const isImg = fileType === 'image' || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
+                if (isImg && filename && !seen.has(filename)) {
+                    seen.add(filename);
+                    list.push({
+                        id: item.id,
+                        filename: filename,
+                        name: item.name || item.title || filename,
+                        title: item.title || item.name || filename,
+                        size: item.size || 0,
+                        mimetype: item.mimetype || 'image/jpeg'
+                    });
+                }
+            });
+
+            // Also add from allItems if not already added
+            allItems.forEach(item => {
+                const isFile = item.type === 'file' || !!item.filename;
+                const fileType = item.fileType || (isFile ? 'file' : item.type);
+                const filename = item.filename || '';
+                const ext = (filename.split('.').pop() || '').toLowerCase();
+                const isImg = fileType === 'image' || ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
+                if (isImg && filename && !seen.has(filename)) {
+                    seen.add(filename);
+                    list.push({
+                        id: item.id,
+                        filename: filename,
+                        name: item.name || item.title || filename,
+                        title: item.title || item.name || filename,
+                        size: item.size || 0,
+                        mimetype: item.mimetype || 'image/jpeg'
+                    });
+                }
+            });
+
+            return list;
+        }
+
+        function openLightbox(target) {
+            galleryPhotos = getAvailableGalleryPhotos();
+
+            let foundIdx = -1;
+            if (target) {
+                foundIdx = galleryPhotos.findIndex(p =>
+                    String(p.id) === String(target) ||
+                    p.filename === target ||
+                    (typeof target === 'string' && (target.endsWith(p.filename) || target.includes(encodeURIComponent(p.filename))))
+                );
+            }
+
+            if (foundIdx === -1) {
+                if (galleryPhotos.length > 0) {
+                    foundIdx = 0;
+                } else if (target) {
+                    const fallbackName = typeof target === 'string' ? target.split('/').pop() : 'photo';
+                    galleryPhotos = [{
+                        id: target,
+                        filename: fallbackName,
+                        name: decodeURIComponent(fallbackName),
+                        title: decodeURIComponent(fallbackName),
+                        size: 0,
+                        url: target
+                    }];
+                    foundIdx = 0;
+                } else {
+                    return;
+                }
+            }
+
+            currentGalleryIndex = foundIdx;
+            renderGalleryPhoto();
+
             const modal = document.getElementById('lightboxModal');
-            document.getElementById('lightboxImg').src = src;
             modal.classList.add('active');
+            modal.focus();
         }
+
         function closeLightbox() {
-            document.getElementById('lightboxModal').classList.remove('active');
+            const modal = document.getElementById('lightboxModal');
+            modal.classList.remove('active');
         }
+
+        function renderGalleryPhoto() {
+            if (!galleryPhotos.length) return;
+            if (currentGalleryIndex < 0) currentGalleryIndex = 0;
+            if (currentGalleryIndex >= galleryPhotos.length) currentGalleryIndex = galleryPhotos.length - 1;
+
+            const photo = galleryPhotos[currentGalleryIndex];
+            const imgEl = document.getElementById('lightboxImg');
+            const fileUrl = photo.url || `${API_BASE}/file/${encodeURIComponent(photo.filename)}`;
+
+            imgEl.style.opacity = '0.3';
+            imgEl.style.transform = 'scale(0.98)';
+            imgEl.src = fileUrl;
+            imgEl.onload = () => {
+                imgEl.style.opacity = '1';
+                imgEl.style.transform = 'scale(1)';
+            };
+
+            const name = photo.name || photo.title || photo.filename || 'Photo';
+            document.getElementById('lightboxFilename').textContent = name;
+            document.getElementById('lightboxMeta').textContent = photo.size ? formatFileSize(photo.size) : '';
+            document.getElementById('lightboxCounter').textContent = `${currentGalleryIndex + 1} / ${galleryPhotos.length}`;
+
+            const prevBtn = document.getElementById('lightboxPrevBtn');
+            const nextBtn = document.getElementById('lightboxNextBtn');
+            if (prevBtn) prevBtn.style.visibility = galleryPhotos.length > 1 ? 'visible' : 'hidden';
+            if (nextBtn) nextBtn.style.visibility = galleryPhotos.length > 1 ? 'visible' : 'hidden';
+        }
+
+        function nextGalleryPhoto(e) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            if (galleryPhotos.length <= 1) return;
+            currentGalleryIndex = (currentGalleryIndex + 1) % galleryPhotos.length;
+            renderGalleryPhoto();
+        }
+
+        function prevGalleryPhoto(e) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            if (galleryPhotos.length <= 1) return;
+            currentGalleryIndex = (currentGalleryIndex - 1 + galleryPhotos.length) % galleryPhotos.length;
+            renderGalleryPhoto();
+        }
+
+        function downloadCurrentGalleryPhoto() {
+            if (!galleryPhotos.length) return;
+            const photo = galleryPhotos[currentGalleryIndex];
+            downloadClipFile(photo.filename, photo.name || photo.title);
+        }
+
+        async function deleteCurrentGalleryPhoto() {
+            if (!galleryPhotos.length) return;
+            const photo = galleryPhotos[currentGalleryIndex];
+            const photoName = photo.name || photo.title || 'this photo';
+            if (!confirm(`Delete "${photoName}" permanently?`)) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/items/${encodeURIComponent(photo.id)}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showToast(`Deleted "${photoName}"`);
+                    allItems = allItems.filter(i => String(i.id) !== String(photo.id) && i.filename !== photo.filename);
+                    renderFeed();
+                    updateBadgeCounts();
+                    if (typeof fetchAndRenderFtFiles === 'function') fetchAndRenderFtFiles();
+
+                    // Remove from active gallery list
+                    galleryPhotos.splice(currentGalleryIndex, 1);
+                    if (galleryPhotos.length === 0) {
+                        closeLightbox();
+                    } else {
+                        if (currentGalleryIndex >= galleryPhotos.length) {
+                            currentGalleryIndex = galleryPhotos.length - 1;
+                        }
+                        renderGalleryPhoto();
+                    }
+                } else {
+                    showToast('Failed to delete photo', 'error');
+                }
+            } catch (err) {
+                showToast('Error deleting photo: ' + err.message, 'error');
+            }
+        }
+
 
         function showToast(msg, type = 'success') {
             const shelf = document.getElementById('toastShelf');
@@ -3552,6 +4057,21 @@
                 e.preventDefault();
                 document.getElementById('sidebarSearch').focus();
             }
+            if (document.getElementById('lightboxModal')?.classList.contains('active')) {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
+                    e.preventDefault();
+                    nextGalleryPhoto();
+                    return;
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+                    e.preventDefault();
+                    prevGalleryPhoto();
+                    return;
+                } else if (e.key === 'Delete' || e.key === 'Backspace') {
+                    e.preventDefault();
+                    deleteCurrentGalleryPhoto();
+                    return;
+                }
+            }
             if (e.key === 'Escape') {
                 closeSidebarDrawer();
                 closeLightbox();
@@ -3580,6 +4100,43 @@
                     handleFtFileSelect(e.dataTransfer.files);
                 }
             });
+        }
+
+                // Wire mouse wheel and touch swipe gestures to lightbox
+        const lbModal = document.getElementById('lightboxModal');
+        if (lbModal) {
+            lbModal.addEventListener('wheel', (e) => {
+                if (!lbModal.classList.contains('active')) return;
+                e.preventDefault();
+                const now = Date.now();
+                if (now - lastWheelNavTime < 220) return;
+                lastWheelNavTime = now;
+                if (e.deltaY > 0 || e.deltaX > 0) {
+                    nextGalleryPhoto();
+                } else {
+                    prevGalleryPhoto();
+                }
+            }, { passive: false });
+
+            let touchStartX = 0;
+            let touchStartY = 0;
+            lbModal.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                }
+            }, { passive: true });
+
+            lbModal.addEventListener('touchend', (e) => {
+                if (e.changedTouches.length === 1) {
+                    const deltaX = e.changedTouches[0].clientX - touchStartX;
+                    const deltaY = e.changedTouches[0].clientY - touchStartY;
+                    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY)) {
+                        if (deltaX < 0) nextGalleryPhoto();
+                        else prevGalleryPhoto();
+                    }
+                }
+            }, { passive: true });
         }
 
         window.addEventListener('DOMContentLoaded', () => {
