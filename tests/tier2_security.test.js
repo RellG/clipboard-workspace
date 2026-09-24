@@ -132,4 +132,42 @@ describe('Tier 2: Boundary, Security & Error Conditions', () => {
         assert.notStrictEqual(res.status, 500, `Must not return 500 on invalid Range request (got ${res.status})`);
         assert.ok([416, 400].includes(res.status), `Expected HTTP 416 or 400 on unsatisfiable range, got ${res.status}`);
     });
+
+    it('Query Param Type Confusion: GET /api/files with array or object search/sort returns HTTP 200 without throwing', async () => {
+        const resArray = await fetchApi(baseUrl, '/api/files?search=alpha&search=beta');
+        assert.strictEqual(resArray.status, 200, `Expected 200, got ${resArray.status}`);
+        assert.ok(Array.isArray(resArray.body));
+
+        const resObj = await fetchApi(baseUrl, '/api/files?search[key]=val');
+        assert.strictEqual(resObj.status, 200, `Expected 200, got ${resObj.status}`);
+        assert.ok(Array.isArray(resObj.body));
+
+        const resSort = await fetchApi(baseUrl, '/api/files?sort=name_asc&sort=size_desc');
+        assert.strictEqual(resSort.status, 200, `Expected 200, got ${resSort.status}`);
+    });
+
+    it('Query Param Type Confusion: GET /api/items with array or object search returns HTTP 200 without throwing', async () => {
+        const resArray = await fetchApi(baseUrl, '/api/items?search=alpha&search=beta');
+        assert.strictEqual(resArray.status, 200, `Expected 200, got ${resArray.status}`);
+        assert.ok(Array.isArray(resArray.body));
+
+        const resObj = await fetchApi(baseUrl, '/api/items?search[foo]=bar');
+        assert.strictEqual(resObj.status, 200, `Expected 200, got ${resObj.status}`);
+        assert.ok(Array.isArray(resObj.body));
+    });
+
+    it('Range header boundary: Malformed non-numeric range (bytes=abc-xyz) returns HTTP 416 without crashing', async () => {
+        assert.ok(testFileItem && testFileItem.id, 'Prerequisite: test file item must be uploaded');
+
+        const res = await fetch(`${baseUrl}/api/files/${testFileItem.id}/download`, {
+            headers: { 'Range': 'bytes=abc-xyz' }
+        });
+
+        assert.strictEqual(res.status, 416, `Expected HTTP 416 on non-numeric range, got ${res.status}`);
+        assert.ok(res.headers.get('content-range'), 'Expected Content-Range header in 416 response');
+
+        // Confirm server is still healthy
+        const health = await fetchApi(baseUrl, '/api/health');
+        assert.strictEqual(health.status, 200, 'Server must remain alive and responsive');
+    });
 });

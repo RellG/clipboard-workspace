@@ -16,7 +16,8 @@ const TIERS = [
     { tier: 1, name: 'Core API Contracts & Endpoints', file: 'tier1_api.test.js' },
     { tier: 2, name: 'Boundary, Security & Error Conditions', file: 'tier2_security.test.js' },
     { tier: 3, name: 'Concurrency, Persistence & SSE Synchronization', file: 'tier3_persistence_sse.test.js' },
-    { tier: 4, name: 'Frontend HTML/DOM Inspection & Ergonomics', file: 'tier4_frontend.test.js' }
+    { tier: 4, name: 'Frontend HTML/DOM Inspection & Ergonomics', file: 'tier4_frontend.test.js' },
+    { tier: 5, name: 'Lossless File Transfer & Integrity Verification', file: 'tier5_lossless_files.test.js' }
 ];
 
 async function isServerHealthy(url) {
@@ -33,7 +34,7 @@ async function isServerHealthy(url) {
 async function runTestFile(testFile, env) {
     return new Promise((resolve) => {
         const fullPath = path.join(__dirname, testFile);
-        const child = spawn(process.execPath, ['--test', fullPath], {
+        const child = spawn(process.execPath, ['--test', '--test-reporter=spec', fullPath], {
             env: { ...process.env, ...env },
             stdio: ['ignore', 'pipe', 'pipe']
         });
