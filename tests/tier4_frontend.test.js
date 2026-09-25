@@ -102,4 +102,30 @@ describe('Tier 4: Frontend HTML/DOM Inspection & Ergonomics', () => {
             'Expected CSS rule hiding .tabs-header-bar / #tabsHeaderBar when in clips mode (.view-clips) on mobile'
         );
     });
+
+    it('Saved Clips & History collapsible right panel: collapse and expand controls, keyboard shortcuts, and state handling', () => {
+        // 1. Collapse button exists in feed header
+        assert.ok(html.includes('id="collapseFeedBtn"'), 'Must contain #collapseFeedBtn in feed-header');
+        assert.ok(html.includes('collapseFeedPanel()'), 'Must invoke collapseFeedPanel() on click');
+
+        // 2. Expand button exists in navbar and clips toggle exists in editor toolbar
+        assert.ok(html.includes('id="expandFeedBtn"'), 'Must contain #expandFeedBtn in navbar');
+        assert.ok(html.includes('expandFeedPanel()'), 'Must invoke expandFeedPanel() on click');
+        assert.ok(html.includes('id="toolbarClipsToggleBtn"'), 'Must contain #toolbarClipsToggleBtn in editor toolbar');
+        assert.ok(html.includes('toggleFeedPanel()'), 'Must invoke toggleFeedPanel() on click');
+
+        // 3. Grid collapse CSS rules exist for feed-collapsed
+        assert.ok(html.includes('.workspace-split.feed-collapsed'), 'Must contain .workspace-split.feed-collapsed CSS rules');
+        assert.ok(/grid-template-columns:\s*1fr\s+0px/i.test(html), 'Must collapse right column to 0px in feed-collapsed state');
+
+        // 4. JS functions exist: collapseFeedPanel, expandFeedPanel, toggleFeedPanel, isFeedPanelCollapsed
+        assert.ok(html.includes('function collapseFeedPanel('), 'Must define collapseFeedPanel()');
+        assert.ok(html.includes('function expandFeedPanel('), 'Must define expandFeedPanel()');
+        assert.ok(html.includes('function toggleFeedPanel('), 'Must define toggleFeedPanel()');
+        assert.ok(html.includes('function isFeedPanelCollapsed('), 'Must define isFeedPanelCollapsed()');
+
+        // 5. State persistence with localStorage and keyboard shortcut (Alt+C)
+        assert.ok(html.includes('clipboard_feed_collapsed'), 'Must persist collapse state in localStorage');
+        assert.ok(/altKey.*(?:'c'|"c")/i.test(html) || /(?:'c'|"c").*altKey/i.test(html), 'Must support Alt+C keyboard shortcut');
+    });
 });

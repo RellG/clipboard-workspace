@@ -493,9 +493,22 @@
             overflow: hidden;
             position: relative;
             min-height: 0;
+            transition: grid-template-columns 0.22s cubic-bezier(0.16, 1, 0.3, 1);
         }
         @media (max-width: 1200px) and (min-width: 901px) {
             .workspace-split { grid-template-columns: 1fr 380px; }
+        }
+
+        @media (min-width: 901px) {
+            .workspace-split.feed-collapsed {
+                grid-template-columns: 1fr 0px !important;
+            }
+            .workspace-split.feed-collapsed .feed-panel {
+                display: none !important;
+            }
+            .workspace-split.feed-collapsed .editor-container {
+                border-right: none !important;
+            }
         }
 
         /* Editor Section */
@@ -791,6 +804,11 @@
             background: var(--bg-tertiary);
             color: var(--text-secondary);
             font-family: var(--font-mono);
+        }
+        .feed-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .feed-filter-bar {
             display: flex;
@@ -2483,6 +2501,11 @@
                         <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline></svg></span>
                         <span class="btn-label-text">Save</span>
                     </button>
+                    <button class="tool-btn nav-action-btn" id="expandFeedBtn" onclick="expandFeedPanel()" style="display: none;" title="Open Saved Clips & History (Alt+C)">
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline></svg></span>
+                        <span class="btn-label-text">Saved Clips</span>
+                        <span class="feed-count-pill" id="expandFeedCountPill" style="font-size: 10px; padding: 1px 6px;">0</span>
+                    </button>
                 </div>
             </header>
 
@@ -2532,6 +2555,12 @@
                             <button class="tool-btn" onclick="clearEditor()" title="Clear Canvas">
                                 <span class="svg-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></span>
                                 <span>Clear</span>
+                            </button>
+                        </div>
+                        <div class="toolbar-group" style="margin-left: auto;">
+                            <button class="tool-btn active" id="toolbarClipsToggleBtn" onclick="toggleFeedPanel()" title="Toggle Saved Clips Panel (Alt+C)">
+                                <span class="svg-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline></svg></span>
+                                <span>Clips</span>
                             </button>
                         </div>
                     </div>
@@ -2584,6 +2613,11 @@
                         <div class="feed-title">
                             <span>Saved Clips & History</span>
                             <span class="feed-count-pill" id="feedCountPill">0</span>
+                        </div>
+                        <div class="feed-header-actions">
+                            <button class="icon-btn" id="collapseFeedBtn" onclick="collapseFeedPanel()" title="Collapse Saved Clips (Alt+C)">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
+                            </button>
                         </div>
                     </div>
 
@@ -3294,6 +3328,7 @@
 
             document.getElementById('feedCountPill').textContent = filtered.length;
             const segCount = document.getElementById('segClipsCount'); if (segCount) segCount.textContent = filtered.length;
+            const expandPill = document.getElementById('expandFeedCountPill'); if (expandPill) expandPill.textContent = filtered.length;
 
             if (filtered.length === 0) {
                 container.innerHTML = `
@@ -3693,6 +3728,7 @@
             const ftView = document.getElementById('fileTransferView');
             const breadcrumbCurrent = document.getElementById('breadcrumbCurrent');
             const navFt = document.getElementById('navItemFileTransfer');
+            const expandFeedBtn = document.getElementById('expandFeedBtn');
 
             // Deactivate all sidebar nav items
             document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active'));
@@ -3703,12 +3739,16 @@
                 if (ftView) ftView.style.display = 'flex';
                 if (breadcrumbCurrent) breadcrumbCurrent.textContent = 'File Transfer & Storage';
                 if (navFt) navFt.classList.add('active');
+                if (expandFeedBtn) expandFeedBtn.style.display = 'none';
                 fetchAndRenderFtFiles();
             } else {
-                if (workspaceSplit) workspaceSplit.style.display = 'flex';
-                if (tabsHeaderBar) tabsHeaderBar.style.display = 'flex';
+                if (workspaceSplit) workspaceSplit.style.display = '';
+                if (tabsHeaderBar) tabsHeaderBar.style.display = '';
                 if (ftView) ftView.style.display = 'none';
                 if (breadcrumbCurrent) breadcrumbCurrent.textContent = (tabs.find(t => t.id === activeTabId)?.name || 'Scratchpad');
+                if (expandFeedBtn) {
+                    expandFeedBtn.style.display = (window.innerWidth > 900 && isFeedPanelCollapsed()) ? 'inline-flex' : 'none';
+                }
                 // Re-activate current feed filter nav item
                 document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
                     if (item.getAttribute('onclick')?.includes(currentFilter)) {
@@ -4319,6 +4359,64 @@
         });
         sidebarBackdrop?.addEventListener('click', closeSidebarDrawer);
 
+        function isFeedPanelCollapsed() {
+            const ws = document.querySelector('.workspace-split');
+            return ws ? ws.classList.contains('feed-collapsed') : false;
+        }
+
+        function collapseFeedPanel() {
+            if (window.innerWidth <= 900) {
+                switchMobileView('editor');
+                return;
+            }
+            const ws = document.querySelector('.workspace-split');
+            const expandBtn = document.getElementById('expandFeedBtn');
+            const toolbarBtn = document.getElementById('toolbarClipsToggleBtn');
+            if (ws) ws.classList.add('feed-collapsed');
+            if (expandBtn && currentAppView === 'workspace') expandBtn.style.display = 'inline-flex';
+            if (toolbarBtn) toolbarBtn.classList.remove('active');
+            try {
+                localStorage.setItem('clipboard_feed_collapsed', 'true');
+            } catch (e) {}
+        }
+
+        function expandFeedPanel() {
+            if (window.innerWidth <= 900) {
+                switchMobileView('clips');
+                return;
+            }
+            const ws = document.querySelector('.workspace-split');
+            const expandBtn = document.getElementById('expandFeedBtn');
+            const toolbarBtn = document.getElementById('toolbarClipsToggleBtn');
+            if (ws) ws.classList.remove('feed-collapsed');
+            if (expandBtn) expandBtn.style.display = 'none';
+            if (toolbarBtn) toolbarBtn.classList.add('active');
+            try {
+                localStorage.setItem('clipboard_feed_collapsed', 'false');
+            } catch (e) {}
+        }
+
+        function toggleFeedPanel() {
+            if (window.innerWidth <= 900) {
+                switchMobileView(currentMobileView === 'clips' ? 'editor' : 'clips');
+                return;
+            }
+            if (isFeedPanelCollapsed()) {
+                expandFeedPanel();
+            } else {
+                collapseFeedPanel();
+            }
+        }
+
+        function initFeedPanelState() {
+            try {
+                const saved = localStorage.getItem('clipboard_feed_collapsed');
+                if (saved === 'true' && window.innerWidth > 900) {
+                    collapseFeedPanel();
+                }
+            } catch (e) {}
+        }
+
         window.addEventListener('resize', () => {
             if (window.innerWidth > 900) {
                 closeSidebarDrawer();
@@ -4327,13 +4425,24 @@
                 }
                 const split = document.querySelector('.workspace-split');
                 split?.classList.remove('view-editor', 'view-clips');
+                const expandBtn = document.getElementById('expandFeedBtn');
+                if (expandBtn) {
+                    expandBtn.style.display = (currentAppView === 'workspace' && isFeedPanelCollapsed()) ? 'inline-flex' : 'none';
+                }
             } else {
                 expandSidebarBtn.style.display = 'flex';
+                const expandBtn = document.getElementById('expandFeedBtn');
+                if (expandBtn) expandBtn.style.display = 'none';
                 switchMobileView(currentMobileView);
             }
         });
 
         window.addEventListener('keydown', (e) => {
+            if ((e.altKey && (e.key === 'c' || e.key === 'C')) || ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'e' || e.key === 'E'))) {
+                e.preventDefault();
+                toggleFeedPanel();
+                return;
+            }
             if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
                 e.preventDefault();
                 document.getElementById('sidebarSearch').focus();
@@ -4438,6 +4547,7 @@
             initSSE();
             fetchTabs();
             fetchAllItems();
+            initFeedPanelState();
             document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
         });
     </script>

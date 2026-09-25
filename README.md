@@ -8,13 +8,20 @@ Built to replace the habit of emailing myself links and screenshots. It runs on 
 ![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Tests](https://img.shields.io/badge/Tests-33%2F33%20Passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-34%2F34%20Passing-brightgreen)
 
 ---
 
 ## What it does
 
 **Live sync across devices.** Server-Sent Events push every change to all connected clients instantly — add an item on one device and it appears on the others without a refresh. The SSE endpoint is kept alive through Nginx with buffering disabled and a 24-hour read timeout.
+
+**Collapsible feed & expanded scratchpad.** The right-side "Saved Clips & History" panel can be collapsed at any time to give the notepad/scratchpad full 100% canvas width. Collapse or expand with:
+- The collapse `>>` button in the feed panel header
+- The "Clips" button in the editor toolbar
+- The "Saved Clips" button in the top navbar (with live count badge)
+- Keyboard shortcuts: `Alt+C` or `Ctrl+Shift+E`
+- Collapse preference is persisted automatically across browser reloads via `localStorage`.
 
 **Dedicated File Transfer & Lossless Storage.** A dedicated section for transferring and storing files intact across hosts. Files are stored as raw unaltered bytes with zero compression or quality loss, accompanied by computed SHA-256 cryptographic hashes, single-click browser downloads preserving original filenames, and copyable `curl` commands for terminal retrieval across remote machines.
 
@@ -107,11 +114,11 @@ Serves the API on port 3000 and `index.html` from the same origin.
 npm test
 ```
 
-Executes the complete E2E test suite covering 33 test specifications across 5 tiers:
+Executes the complete E2E test suite covering 34 test specifications across 5 tiers:
 - **Tier 1**: Core API Contracts & Endpoints (8 tests)
 - **Tier 2**: Boundary, Security & Error Conditions (12 tests)
 - **Tier 3**: Concurrency, Persistence & SSE Synchronization (2 tests)
-- **Tier 4**: Frontend HTML/DOM Inspection & Ergonomics (4 tests)
+- **Tier 4**: Frontend HTML/DOM Inspection & Ergonomics (5 tests)
 - **Tier 5**: Lossless File Transfer & Integrity Verification (7 tests)
 
 ### Configuration
