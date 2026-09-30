@@ -36,7 +36,9 @@ npm install && npm test                # isolated temp-dir server, 70 tests
 # push changes back, then on the Pi
 tar cf - <changed files> | ssh rpi 'cd ~/Clipboard && tar xf -'
 ssh rpi 'cd ~/Clipboard && git add -A && git commit -m "..." && git push origin main'
-ssh rpi 'cd ~/Clipboard && docker compose up -d --build'   # index.html is baked into the image, so UI changes need a rebuild
+ssh rpi 'cd ~/Clipboard && docker-compose up -d --build'   # index.html is baked into the image, so UI changes need a rebuild
+# Use the hyphenated docker-compose (v1.29). The `docker compose` plugin (v5) is too new for the Pi's Docker 20.10 daemon
+# and fails with "client version 1.52 is too new". Verify afterwards (see the checklist above).
 ```
 
 - Commit/PR attribution lines follow the harness instructions; push straight to `main` only when the user has asked for it.
