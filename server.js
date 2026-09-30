@@ -412,8 +412,17 @@ let db = { ...DEFAULT_STATE };
 // recover from a bad write; snapshots keep real history. Only valid JSON is snapshotted and only
 // files matching SNAPSHOT_NAME_RE are ever pruned.
 const SNAPSHOT_DIR = path.join(DATA_DIR, 'snapshots');
-const SNAPSHOT_NAME_RE = /^db-[0-9T-]+Z-(boot|auto)\.json$/;
-const SNAPSHOT_KEEP = { boot: 20, auto: 30 };
+const SNAPSHOT_NAME_RE = /^db-[0-9T-]+Z-(boot|auto|purge)\.json$/;
+const SNAPSHOT_KEEP = { boot: 20, auto: 30, purge: 10 };
+
+// Trash: "deleting" from the UI only flags an item/tab as trashed. Trashed things are permanently
+// removed after TRASH_RETENTION_DAYS (default 30; 0 disables auto-purge). Purging only ever touches
+// entries that are flagged trashed AND carry a valid trashedAt older than the cutoff.
+const TRASH_RETENTION_DAYS = (() => {
+    const v = parseFloat(process.env.TRASH_RETENTION_DAYS);
+    return Number.isFinite(v) && v >= 0 ? v : 30;
+})();
+const TRASH_PURGE_INTERVAL_MS = parseInt(process.env.TRASH_PURGE_INTERVAL_MS, 10) || 60 * 60 * 1000;
 const SNAPSHOT_AUTO_INTERVAL_MS = 60 * 60 * 1000;
 let lastSnapshotAt = 0;
 
@@ -747,13 +756,19 @@ app.get('/api/items', (req, res) => {
     const tag = typeof req.query.tag === 'string' ? req.query.tag.trim() : '';
     const pinned = typeof req.query.pinned === 'string' ? req.query.pinned.trim() : '';
     const archived = typeof req.query.archived === 'string' ? req.query.archived.trim() : '';
+    const trashed = typeof req.query.trashed === 'string' ? req.query.trashed.trim() : '';
     let list = [...db.items];
 
-    // Omitted = everything (backward compatible); legacy items have no `archived` field.
+    // Omitted = everything (backward compatible); legacy items have no `archived` / `trashed` field.
     if (archived === 'true') {
         list = list.filter(i => i.archived === true);
     } else if (archived === 'false') {
         list = list.filter(i => i.archived !== true);
+    }
+    if (trashed === 'true') {
+        list = list.filter(i => i.trashed === true);
+    } else if (trashed === 'false') {
+        list = list.filter(i => i.trashed !== true);
     }
     if (pinned === 'true') {
         list = list.filter(i => i.pinned);
@@ -930,6 +945,110 @@ app.post('/api/items/archive', (req, res) => {
     res.json({ success: true, archived, changed: changed.map(i => String(i.id)), items: changed });
 });
 
+// 4c. Trash / Restore-from-trash
+// Trashing only sets a flag (files stay on disk, updatedAt untouched). Restoring removes the keys so
+// the item returns to its exact previous shape. DELETE below remains the permanent delete.
+function setTrashed(entry, trashed) {
+    if (trashed) {
+        entry.trashed = true;
+        entry.trashedAt = new Date().toISOString();
+    } else {
+        delete entry.trashed;
+        delete entry.trashedAt;
+    }
+}
+
+function trashItemHandler(req, res) {
+    const id = String(req.params.id);
+    const item = db.items.find(i => String(i.id) === id || (i.filename && i.filename === id));
+    if (!item) return res.status(404).json({ error: 'Item not found' });
+
+    const body = req.body || {};
+    const trashed = body.trashed !== undefined ? body.trashed === true : item.trashed !== true;
+    setTrashed(item, trashed);
+    saveDb();
+
+    broadcastEvent('item_updated', item);
+    res.json({ success: true, item });
+}
+
+app.patch('/api/items/:id/trash', trashItemHandler);
+app.patch('/api/files/:id/trash', trashItemHandler);
+
+// Bulk: POST /api/items/trash { ids: [...], trashed: true|false }
+app.post('/api/items/trash', (req, res) => {
+    const { ids, trashed } = req.body || {};
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > 500 || typeof trashed !== 'boolean') {
+        return res.status(400).json({ error: 'Body must be { ids: string[] (1-500), trashed: boolean }' });
+    }
+
+    const wanted = new Set(ids.map(String));
+    const changed = [];
+    for (const item of db.items) {
+        if (wanted.has(String(item.id)) && (item.trashed === true) !== trashed) {
+            setTrashed(item, trashed);
+            changed.push(item);
+        }
+    }
+
+    if (changed.length) {
+        saveDb();
+        changed.forEach(item => broadcastEvent('item_updated', item));
+    }
+    res.json({ success: true, trashed, changed: changed.map(i => String(i.id)), items: changed });
+});
+
+// Permanently remove trashed entries. Files are only unlinked when no remaining item references them.
+function removeTrashedEntries(predicate) {
+    const items = db.items.filter(i => i.trashed === true && predicate(i));
+    const trashedTabs = db.tabs.filter(t => t.trashed === true && predicate(t));
+    if (!items.length && !trashedTabs.length) return { items: 0, tabs: 0 };
+
+    snapshotDb('purge');
+
+    const dropItems = new Set(items);
+    const dropTabs = new Set(trashedTabs);
+    db.items = db.items.filter(i => !dropItems.has(i));
+    db.tabs = db.tabs.filter(t => !dropTabs.has(t));
+
+    for (const item of items) {
+        if (!item.filename) continue;
+        if (db.items.some(o => o.filename === item.filename)) continue;
+        const resolved = resolveUploadPath(item.filename, false);
+        if (resolved && fs.existsSync(resolved.targetPath)) {
+            try { fs.unlinkSync(resolved.targetPath); } catch (e) { console.warn('[Trash] File unlink error:', e.message); }
+        }
+    }
+
+    saveDb();
+    for (const item of items) {
+        broadcastEvent('item_deleted', { id: item.id });
+        if (item.filename) broadcastEvent('file_deleted', { id: item.id, filename: item.filename });
+    }
+    for (const tab of trashedTabs) broadcastEvent('tab_deleted', { id: tab.id });
+    return { items: items.length, tabs: trashedTabs.length };
+}
+
+function purgeExpiredTrash(now = Date.now()) {
+    if (TRASH_RETENTION_DAYS <= 0) return { items: 0, tabs: 0 };
+    const cutoff = now - TRASH_RETENTION_DAYS * 86400000;
+    // Date.parse(invalid) is NaN and NaN <= cutoff is false, so entries without a valid trashedAt are never purged.
+    const result = removeTrashedEntries(entry => Date.parse(entry.trashedAt) <= cutoff);
+    if (result.items || result.tabs) {
+        console.log(`[Trash] Auto-purged ${result.items} item(s) and ${result.tabs} tab(s) trashed more than ${TRASH_RETENTION_DAYS} day(s) ago.`);
+    }
+    return result;
+}
+
+// Empty the whole trash: POST /api/trash/empty { confirm: true }
+app.post('/api/trash/empty', (req, res) => {
+    if (!req.body || req.body.confirm !== true) {
+        return res.status(400).json({ error: 'Send { "confirm": true } to permanently empty the trash' });
+    }
+    const result = removeTrashedEntries(() => true);
+    res.json({ success: true, ...result });
+});
+
 // 5. Delete Item Handler (for /api/items/:id, /api/text/:id, /api/file/:id)
 function deleteItemHandler(req, res, next) {
     try {
@@ -991,6 +1110,8 @@ function formatFileMetadata(item) {
         createdAt: item.createdAt || item.timestamp,
         archived: item.archived === true,
         archivedAt: item.archivedAt || null,
+        trashed: item.trashed === true,
+        trashedAt: item.trashedAt || null,
         downloadUrl: item.downloadUrl || `/api/files/${encodeURIComponent(id)}/download`
     };
 }
@@ -1003,12 +1124,18 @@ app.get('/api/files', (req, res) => {
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
     const sort = typeof req.query.sort === 'string' ? req.query.sort.trim() : '';
     const archived = typeof req.query.archived === 'string' ? req.query.archived.trim() : '';
+    const trashed = typeof req.query.trashed === 'string' ? req.query.trashed.trim() : '';
     let list = db.items.filter(i => i.type === 'file' || !!i.filename);
 
     if (archived === 'true') {
         list = list.filter(i => i.archived === true);
     } else if (archived === 'false') {
         list = list.filter(i => i.archived !== true);
+    }
+    if (trashed === 'true') {
+        list = list.filter(i => i.trashed === true);
+    } else if (trashed === 'false') {
+        list = list.filter(i => i.trashed !== true);
     }
 
     if (search) {
@@ -1479,7 +1606,55 @@ app.get('/api/file/:filename', (req, res, next) => {
 // Notepad Tabs Management
 // ============================================================================
 app.get('/api/tabs', (req, res) => {
-    res.json(db.tabs || []);
+    const trashed = typeof req.query.trashed === 'string' ? req.query.trashed.trim() : '';
+    let list = db.tabs || [];
+    if (trashed === 'true') list = list.filter(t => t.trashed === true);
+    else if (trashed === 'false') list = list.filter(t => t.trashed !== true);
+    res.json(list);
+});
+
+// Reorder tabs: PUT /api/tabs/order { ids: [...] }. Listed tabs take that order; any tab not listed
+// (e.g. trashed ones) keeps its relative order after them. Tab contents are never modified.
+app.put('/api/tabs/order', (req, res) => {
+    const { ids } = req.body || {};
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > 500 || !ids.every(i => typeof i === 'string')) {
+        return res.status(400).json({ error: 'Body must be { ids: string[] (1-500) }' });
+    }
+
+    const byId = new Map(db.tabs.map(t => [t.id, t]));
+    const seen = new Set();
+    const ordered = [];
+    for (const id of ids) {
+        if (byId.has(id) && !seen.has(id)) {
+            seen.add(id);
+            ordered.push(byId.get(id));
+        }
+    }
+    const rest = db.tabs.filter(t => !seen.has(t.id));
+    db.tabs = [...ordered, ...rest];
+    saveDb();
+
+    const order = db.tabs.map(t => t.id);
+    broadcastEvent('tabs_reordered', { ids: order });
+    res.json({ success: true, ids: order });
+});
+
+// Trash / restore a tab: PATCH /api/tabs/:id/trash { trashed?: boolean }
+app.patch('/api/tabs/:id/trash', (req, res) => {
+    const id = req.params.id;
+    if (id === 'scratchpad' || id === 'notes') {
+        return res.status(400).json({ error: `Cannot trash default tab: ${id}` });
+    }
+    const tab = db.tabs.find(t => t.id === id);
+    if (!tab) return res.status(404).json({ error: 'Tab not found' });
+
+    const body = req.body || {};
+    const trashed = body.trashed !== undefined ? body.trashed === true : tab.trashed !== true;
+    setTrashed(tab, trashed);
+    saveDb();
+
+    broadcastEvent('tab_updated', tab);
+    res.json({ success: true, tab });
 });
 
 app.put('/api/tabs/:id', (req, res) => {
@@ -1540,6 +1715,9 @@ app.get('/api/health', (req, res) => {
         status: 'healthy',
         items: db.items.length,
         archivedItems: db.items.filter(i => i.archived === true).length,
+        trashedItems: db.items.filter(i => i.trashed === true).length,
+        trashedTabs: db.tabs.filter(t => t.trashed === true).length,
+        trashRetentionDays: TRASH_RETENTION_DAYS,
         tabs: db.tabs.length,
         connectedClients: sseClients.size,
         uptime: process.uptime(),
@@ -1569,6 +1747,11 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`✨ RellLab Clipboard Engine v2 running on port ${PORT}`);
     console.log(`📁 Persistence active at ${DB_FILE}`);
     console.log(`📡 SSE Stream live at /api/events`);
+    console.log(`🗑️  Trash auto-purge: ${TRASH_RETENTION_DAYS > 0 ? `after ${TRASH_RETENTION_DAYS} day(s)` : 'disabled'}`);
+    try { purgeExpiredTrash(); } catch (e) { console.error('[Trash] Purge failed:', e); }
+    setInterval(() => {
+        try { purgeExpiredTrash(); } catch (e) { console.error('[Trash] Purge failed:', e); }
+    }, TRASH_PURGE_INTERVAL_MS).unref();
 });
 
 // Process Resilience

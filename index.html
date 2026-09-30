@@ -2559,6 +2559,37 @@
         }
         .toast-action-btn:hover { background: var(--accent-glow); }
 
+        /* Trash, tab drag-and-drop, cross-tab search */
+        .feed-archive-banner.trash { background: rgba(244, 63, 94, 0.08); border-color: rgba(244, 63, 94, 0.3); flex-wrap: wrap; }
+        .feed-archive-banner .banner-text { flex: 1; min-width: 160px; }
+        .ui-btn.small { min-height: 28px; padding: 4px 10px; font-size: 12px; }
+        .tab-snippet {
+            font-size: 12.5px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            user-select: text;
+        }
+        .clip-card.tab-result { cursor: pointer; }
+        .clip-card.tab-result:hover { border-color: var(--text-accent); }
+        mark {
+            background: rgba(245, 158, 11, 0.35);
+            color: inherit;
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+        .notepad-tab[draggable="true"] { cursor: grab; }
+        .notepad-tab.dragging { opacity: 0.4; }
+        .notepad-tab.drop-before { box-shadow: inset 3px 0 0 var(--text-accent); }
+        .notepad-tab.drop-after { box-shadow: inset -3px 0 0 var(--text-accent); }
+        .tool-btn:disabled { opacity: 0.35; cursor: default; }
+        .tool-btn:disabled:hover { background: transparent; color: var(--text-secondary); }
+
         @media (max-width: 900px) {
             .card-toggle { width: 32px; height: 32px; }
             .card-more-btn { min-height: 34px; padding: 6px 12px; }
@@ -2606,9 +2637,9 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
                     <span id="lightboxArchiveLabel">Archive</span>
                 </button>
-                <button class="lightbox-btn danger" id="lightboxDeleteBtn" onclick="deleteCurrentGalleryPhoto()" title="Delete photo from storage">
+                <button class="lightbox-btn danger" id="lightboxDeleteBtn" onclick="deleteCurrentGalleryPhoto()" title="Move photo to trash (Del)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                    <span>Delete</span>
+                    <span>Trash</span>
                 </button>
                 <button class="lightbox-btn close" onclick="closeLightbox()" title="Close viewer (Esc)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -2635,7 +2666,7 @@
         <div class="lightbox-footer" onclick="event.stopPropagation()">
             <span class="lightbox-nav-hint">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="3" width="12" height="18" rx="6"></rect><line x1="12" y1="7" x2="12" y2="11"></line></svg>
-                Scroll mouse wheel, swipe, or use ← / → arrow keys to browse photos • A to archive • Del to delete
+                Scroll mouse wheel, swipe, or use ← / → arrow keys to browse photos • A to archive • Del to trash
             </span>
         </div>
     </div>
@@ -2727,6 +2758,13 @@
                         <span>Archive</span>
                     </div>
                     <span class="nav-badge" id="badgeArchive">0</span>
+                </div>
+                <div class="nav-item" data-filter="trash" onclick="setFeedFilter('trash')" role="button" tabindex="0">
+                    <div class="nav-item-left">
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></span>
+                        <span>Trash</span>
+                    </div>
+                    <span class="nav-badge" id="badgeTrash">0</span>
                 </div>
             </nav>
 
@@ -2840,6 +2878,12 @@
                             </button>
                         </div>
                         <div class="toolbar-group" style="margin-left: auto;">
+                            <button class="tool-btn" id="tabMoveLeftBtn" onclick="moveActiveTab(-1)" title="Move this tab left (Alt+Shift+Left)" aria-label="Move tab left">
+                                <span class="svg-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></span>
+                            </button>
+                            <button class="tool-btn" id="tabMoveRightBtn" onclick="moveActiveTab(1)" title="Move this tab right (Alt+Shift+Right)" aria-label="Move tab right">
+                                <span class="svg-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>
+                            </button>
                             <button class="tool-btn active" id="toolbarClipsToggleBtn" onclick="toggleFeedPanel()" title="Toggle Saved Clips Panel (Alt+C)">
                                 <span class="svg-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline></svg></span>
                                 <span>Clips</span>
@@ -2925,6 +2969,7 @@
                         <button class="tag-pill" data-filter="link" onclick="setFeedFilter('link')">Links</button>
                         <button class="tag-pill" data-filter="file" onclick="setFeedFilter('file')">Media</button>
                         <button class="tag-pill" data-filter="archive" onclick="setFeedFilter('archive')">Archive</button>
+                        <button class="tag-pill" data-filter="trash" onclick="setFeedFilter('trash')">Trash</button>
                     </div>
 
                     <!-- Cards Container -->
@@ -3115,6 +3160,8 @@
         let ftScope = 'active';          // 'active' | 'archived'
         let ftSort = 'date_desc';
         const ftSelected = new Set();
+        let trashRetentionDays = 30;     // replaced by the server's setting on load
+        let dragTabId = null;
 
         const Prefs = {
             get(key, fallback) {
@@ -3272,6 +3319,12 @@
                 if (tIdx !== -1) {
                     tabs[tIdx] = tab;
                     renderTabs();
+                    renderFeed();
+                    if (isTrashed(tab) && tab.id === activeTabId) {
+                        const next = visibleTabs()[0];
+                        if (next) loadTab(next.id);
+                        return;
+                    }
                     if (tab.id === activeTabId) {
                         const ta = document.getElementById('editorTextarea');
                         if (ta && ta.value !== tab.content && document.activeElement !== ta) {
@@ -3288,9 +3341,15 @@
                 const { id } = JSON.parse(e.data);
                 tabs = tabs.filter(t => t.id !== id);
                 renderTabs();
-                if (activeTabId === id && tabs.length > 0) {
-                    loadTab(tabs[0].id);
+                renderFeed();
+                if (activeTabId === id && visibleTabs().length > 0) {
+                    loadTab(visibleTabs()[0].id);
                 }
+            });
+
+            sseSource.addEventListener('tabs_reordered', (e) => {
+                const { ids } = JSON.parse(e.data);
+                applyTabOrder(ids, false);
             });
         }
 
@@ -3319,16 +3378,31 @@
             }
         }
 
+        function isTrashed(entry) {
+            return !!entry && entry.trashed === true;
+        }
+
+        function visibleTabs() {
+            return tabs.filter(t => !isTrashed(t));
+        }
+
+        function clearTabDropMarkers() {
+            dragTabId = null;
+            document.querySelectorAll('.notepad-tab').forEach(el => el.classList.remove('dragging', 'drop-before', 'drop-after'));
+        }
+
         function renderTabs() {
             const container = document.getElementById('tabsHeaderBar');
             const newBtn = container.querySelector('.new-tab-btn');
+            const shown = visibleTabs();
 
             container.querySelectorAll('.notepad-tab').forEach(el => el.remove());
 
-            tabs.forEach(tab => {
+            shown.forEach(tab => {
                 const tabEl = document.createElement('button');
                 tabEl.className = `notepad-tab ${tab.id === activeTabId ? 'active' : ''}`;
                 tabEl.onclick = () => loadTab(tab.id);
+                tabEl.draggable = true;
 
                 const iconSvg = tab.mode === 'code' ? ICONS.code : ICONS.doc;
                 const canClose = !['scratchpad', 'notes'].includes(tab.id);
@@ -3336,7 +3410,7 @@
                 tabEl.innerHTML = `
                     <span class="svg-icon">${iconSvg}</span>
                     <span>${escapeHtml(tab.name)}</span>
-                    ${canClose ? `<span class="tab-close-btn" title="Delete tab">${ICONS.x}</span>` : ''}
+                    ${canClose ? `<span class="tab-close-btn" title="Move tab to trash">${ICONS.x}</span>` : ''}
                 `;
                 const closeEl = tabEl.querySelector('.tab-close-btn');
                 if (closeEl) {
@@ -3345,14 +3419,89 @@
                         closeTab(tab.id);
                     });
                 }
+
+                // Drag-and-drop reordering
+                tabEl.addEventListener('dragstart', (ev) => {
+                    dragTabId = tab.id;
+                    ev.dataTransfer.effectAllowed = 'move';
+                    ev.dataTransfer.setData('text/plain', tab.id);
+                    tabEl.classList.add('dragging');
+                });
+                tabEl.addEventListener('dragend', clearTabDropMarkers);
+                tabEl.addEventListener('dragover', (ev) => {
+                    if (!dragTabId || dragTabId === tab.id) return;
+                    ev.preventDefault();
+                    ev.dataTransfer.dropEffect = 'move';
+                    const rect = tabEl.getBoundingClientRect();
+                    const after = ev.clientX > rect.left + rect.width / 2;
+                    tabEl.classList.toggle('drop-after', after);
+                    tabEl.classList.toggle('drop-before', !after);
+                });
+                tabEl.addEventListener('dragleave', () => tabEl.classList.remove('drop-before', 'drop-after'));
+                tabEl.addEventListener('drop', (ev) => {
+                    if (!dragTabId) return;
+                    ev.preventDefault();
+                    const rect = tabEl.getBoundingClientRect();
+                    const after = ev.clientX > rect.left + rect.width / 2;
+                    const fromId = dragTabId;
+                    clearTabDropMarkers();
+                    moveTabRelative(fromId, tab.id, after);
+                });
+
                 container.insertBefore(tabEl, newBtn);
             });
 
             const label = document.getElementById('tabsCollapsedText');
             if (label) {
-                const active = tabs.find(t => t.id === activeTabId);
-                label.innerHTML = `<strong>${escapeHtml(active ? active.name : 'Notes')}</strong> <span style="color: var(--text-tertiary);">· ${tabs.length} ${tabs.length === 1 ? 'tab' : 'tabs'}</span>`;
+                const active = shown.find(t => t.id === activeTabId);
+                label.innerHTML = `<strong>${escapeHtml(active ? active.name : 'Notes')}</strong> <span style="color: var(--text-tertiary);">· ${shown.length} ${shown.length === 1 ? 'tab' : 'tabs'}</span>`;
             }
+
+            const pos = shown.findIndex(t => t.id === activeTabId);
+            const left = document.getElementById('tabMoveLeftBtn');
+            const right = document.getElementById('tabMoveRightBtn');
+            if (left) left.disabled = pos <= 0;
+            if (right) right.disabled = pos === -1 || pos >= shown.length - 1;
+        }
+
+        // Reorder local tabs to match `ids` (ids not listed, e.g. trashed tabs, keep their order after). Optionally persist.
+        function applyTabOrder(ids, persist) {
+            const byId = new Map(tabs.map(t => [t.id, t]));
+            const seen = new Set();
+            const ordered = [];
+            ids.forEach(id => { if (byId.has(id) && !seen.has(id)) { seen.add(id); ordered.push(byId.get(id)); } });
+            const next = [...ordered, ...tabs.filter(t => !seen.has(t.id))];
+            if (next.every((t, i) => t === tabs[i])) return;
+            tabs = next;
+            renderTabs();
+            if (!persist) return;
+            fetch(`${API_BASE}/tabs/order`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: tabs.map(t => t.id) })
+            }).then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            }).catch(() => {
+                showToast('Could not save tab order', 'error');
+                fetchTabs();
+            });
+        }
+
+        function moveTabRelative(fromId, targetId, after) {
+            const order = visibleTabs().map(t => t.id).filter(id => id !== fromId);
+            const idx = order.indexOf(targetId);
+            if (idx === -1 || fromId === targetId) return;
+            order.splice(after ? idx + 1 : idx, 0, fromId);
+            applyTabOrder(order, true);
+        }
+
+        function moveActiveTab(delta) {
+            const order = visibleTabs().map(t => t.id);
+            const i = order.indexOf(activeTabId);
+            const j = i + delta;
+            if (i === -1 || j < 0 || j >= order.length) return;
+            [order[i], order[j]] = [order[j], order[i]];
+            applyTabOrder(order, true);
         }
 
         function setTabsCollapsed(collapsed) {
@@ -3372,11 +3521,12 @@
         }
 
         function loadTab(id) {
+            const shown = visibleTabs();
             activeTabId = id;
-            let tab = tabs.find(t => t.id === id);
+            let tab = shown.find(t => t.id === id);
             if (!tab) {
-                activeTabId = tabs[0]?.id || 'scratchpad';
-                tab = tabs[0];
+                tab = shown[0];
+                activeTabId = tab ? tab.id : 'scratchpad';
             }
             if (!tab) return;
 
@@ -3418,25 +3568,62 @@
             }
         }
 
+        // Closing a tab moves it to Trash (restorable, auto-deleted after the retention period).
         async function closeTab(id) {
+            return trashTab(id, true);
+        }
+
+        async function trashTab(id, trashed) {
             const tab = tabs.find(t => t.id === id);
-            const chars = tab && tab.content ? tab.content.length : 0;
+            if (!tab) return false;
+            try {
+                const res = await fetch(`${API_BASE}/tabs/${encodeURIComponent(id)}/trash`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ trashed })
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const idx = tabs.findIndex(t => t.id === id);
+                if (idx !== -1) tabs[idx] = data.tab;
+
+                if (trashed && activeTabId === id) {
+                    const next = visibleTabs()[0];
+                    if (next) loadTab(next.id);
+                } else {
+                    renderTabs();
+                }
+                renderFeed();
+                const name = data.tab.name || 'tab';
+                showToast(trashed ? `Moved tab "${name}" to trash` : `Restored tab "${name}"`, 'success', {
+                    label: 'Undo',
+                    onClick: () => trashTab(id, !trashed)
+                });
+                return true;
+            } catch (e) {
+                showToast(`Could not ${trashed ? 'trash' : 'restore'} tab: ${e.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function purgeTab(id) {
+            const tab = tabs.find(t => t.id === id);
+            if (!tab) return;
+            const chars = (tab.content || '').length;
             const ok = await askConfirm({
-                title: `Delete tab "${tab ? tab.name : id}"?`,
-                message: chars
-                    ? `Its ${chars.toLocaleString()} characters of text will be permanently deleted. Copy anything you want to keep first.`
-                    : 'This tab is empty.',
-                confirmText: 'Delete tab',
+                title: `Delete tab "${tab.name}" forever?`,
+                message: chars ? `Its ${chars.toLocaleString()} characters of text will be permanently deleted. This cannot be undone.` : 'This cannot be undone.',
+                confirmText: 'Delete forever',
                 danger: true
             });
             if (!ok) return;
-
             try {
-                await fetch(`${API_BASE}/tabs/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                const res = await fetch(`${API_BASE}/tabs/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 tabs = tabs.filter(t => t.id !== id);
-                if (activeTabId === id) activeTabId = tabs[0]?.id || 'scratchpad';
                 renderTabs();
-                loadTab(activeTabId);
+                renderFeed();
+                showToast('Tab deleted forever');
             } catch (e) {
                 showToast('Failed to delete tab', 'error');
             }
@@ -3720,8 +3907,9 @@
 
         function getVisibleItems() {
             const inArchive = currentFilter === 'archive';
-            let list = allItems.filter(i => isArchived(i) === inArchive);
-            if (!inArchive) list = list.filter(i => matchesFilter(i, currentFilter));
+            const inTrash = currentFilter === 'trash';
+            let list = allItems.filter(i => inTrash ? isTrashed(i) : (!isTrashed(i) && isArchived(i) === inArchive));
+            if (!inArchive && !inTrash) list = list.filter(i => matchesFilter(i, currentFilter));
 
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
@@ -3732,23 +3920,27 @@
                 );
             }
 
-            const stamp = (i) => new Date((inArchive ? i.archivedAt : null) || i.updatedAt || i.timestamp || 0).getTime();
+            const stamp = (i) => new Date((inTrash ? i.trashedAt : (inArchive ? i.archivedAt : null)) || i.updatedAt || i.timestamp || 0).getTime();
             return list.sort((a, b) => {
-                if (!inArchive && a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+                if (!inArchive && !inTrash && a.pinned !== b.pinned) return a.pinned ? -1 : 1;
                 return stamp(b) - stamp(a);
             });
         }
 
-        function groupLabelFor(item, inArchive) {
-            if (!inArchive && item.pinned) return 'Pinned';
-            const d = new Date((inArchive ? item.archivedAt : null) || item.updatedAt || item.timestamp || 0);
+        // mode: 'archive' | 'trash' | null. Returns a date-bucket label.
+        function groupLabelFor(item, mode) {
+            if (!mode && item.pinned) return 'Pinned';
+            const when = mode === 'trash' ? item.trashedAt : (mode === 'archive' ? item.archivedAt : null);
+            const d = new Date(when || item.updatedAt || item.timestamp || 0);
             const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
             const dayMs = 86400000;
-            if (d >= startOfToday) return inArchive ? 'Archived today' : 'Today';
-            if (d >= startOfToday - dayMs) return inArchive ? 'Archived yesterday' : 'Yesterday';
-            if (d >= startOfToday - 6 * dayMs) return inArchive ? 'Archived this week' : 'Last 7 days';
-            if (d >= startOfToday - 29 * dayMs) return inArchive ? 'Archived this month' : 'Last 30 days';
-            return inArchive ? 'Archived earlier' : 'Older';
+            const prefix = mode === 'trash' ? 'Deleted ' : (mode === 'archive' ? 'Archived ' : '');
+            const pick = (plain, withPrefix) => (mode ? prefix + withPrefix : plain);
+            if (d >= startOfToday) return pick('Today', 'today');
+            if (d >= startOfToday - dayMs) return pick('Yesterday', 'yesterday');
+            if (d >= startOfToday - 6 * dayMs) return pick('Last 7 days', 'this week');
+            if (d >= startOfToday - 29 * dayMs) return pick('Last 30 days', 'this month');
+            return pick('Older', 'earlier');
         }
 
         function measureItem(item) {
@@ -3785,10 +3977,14 @@
         function renderCardHtml(item) {
             const id = String(item.id);
             const archived = isArchived(item);
+            const trashed = isTrashed(item);
             const isFile = item.type === 'file' || !!item.filename;
             const content = item.content || '';
-            const when = archived && item.archivedAt ? item.archivedAt : (item.updatedAt || item.timestamp);
-            const timeAgo = (archived && item.archivedAt ? 'Archived ' : '') + getTimeAgo(new Date(when));
+            const when = trashed && item.trashedAt ? item.trashedAt
+                : (archived && item.archivedAt ? item.archivedAt : (item.updatedAt || item.timestamp));
+            const timeAgo = (trashed ? 'Deleted ' : (archived && item.archivedAt ? 'Archived ' : ''))
+                + getTimeAgo(new Date(when))
+                + (trashed ? trashCountdownText(item) : '');
             const isLink = isLinkItem(item);
             const isCode = item.type === 'code' || item.fileType === 'code';
             const fileType = item.fileType || (isFile ? 'file' : item.type);
@@ -3845,17 +4041,21 @@
                 const fileUrl = `${API_BASE}/file/${encodeURIComponent(item.filename)}`;
                 const sizeStr = formatFileSize(item.size || 0);
                 const downloadPill = mediaPill('download', 'Download', ICONS.download);
-                const archivePill = archived
-                    ? mediaPill('restore', 'Restore', ICONS.restore)
-                    : mediaPill('archive', 'Archive', ICONS.archive, 'archive');
-                const deletePill = mediaPill('delete', 'Delete', ICONS.trash, 'danger');
+                const archivePill = trashed
+                    ? mediaPill('untrash', 'Restore', ICONS.restore)
+                    : (archived
+                        ? mediaPill('restore', 'Restore', ICONS.restore)
+                        : mediaPill('archive', 'Archive', ICONS.archive, 'archive'));
+                const deletePill = trashed
+                    ? mediaPill('purge', 'Delete forever', ICONS.trash, 'danger')
+                    : mediaPill('delete', 'Trash', ICONS.trash, 'danger');
                 let preview = '';
                 let viewPill = '';
 
                 if (fileType === 'image') {
-                    viewPill = mediaPill('view', 'View', ICONS.view, 'primary');
+                    if (!trashed) viewPill = mediaPill('view', 'View', ICONS.view, 'primary');
                     if (!collapsed) {
-                        preview = `<div class="media-preview-container"><img src="${fileUrl}" class="media-image-thumb" data-action="view" loading="lazy" alt="${escapeHtml(item.title || '')}" title="Click to view and browse photos"></div>`;
+                        preview = `<div class="media-preview-container"><img src="${fileUrl}" class="media-image-thumb" ${trashed ? '' : 'data-action="view"'} loading="lazy" alt="${escapeHtml(item.title || '')}" title="Click to view and browse photos"></div>`;
                     }
                 } else if (fileType === 'audio' && !collapsed) {
                     preview = `<div class="media-preview-container" style="padding: 6px;"><audio controls class="media-audio-player" preload="metadata"><source src="${fileUrl}" type="${escapeHtml(item.mimetype || 'audio/mpeg')}"></audio></div>`;
@@ -3885,7 +4085,12 @@
                 ? `<button class="card-more-btn" data-action="more"><span>${collapsed ? 'Show more' : 'Show less'}</span><span class="card-more-meta">${escapeHtml(meta.label)}</span></button>`
                 : '';
 
-            const actions = [
+            const actions = (trashed ? [
+                cardIconBtn('copy', isFile ? 'Copy file name' : 'Copy content', ICONS.copy),
+                isFile ? cardIconBtn('download', 'Download', ICONS.download) : '',
+                cardIconBtn('untrash', 'Restore from trash', ICONS.restore, 'restore'),
+                cardIconBtn('purge', 'Delete forever', ICONS.trash)
+            ] : [
                 cardIconBtn('pin', item.pinned ? 'Unpin' : 'Pin to top', item.pinned ? ICONS.starFilled : ICONS.star, item.pinned ? 'pinned' : ''),
                 cardIconBtn('copy', isFile ? 'Copy file name' : 'Copy content', ICONS.copy),
                 (!isFile && content) ? cardIconBtn('open', 'Open in a new editor tab', ICONS.edit) : '',
@@ -3893,8 +4098,8 @@
                 archived
                     ? cardIconBtn('restore', 'Restore from archive', ICONS.restore, 'restore')
                     : cardIconBtn('archive', 'Move to archive', ICONS.archive),
-                cardIconBtn('delete', archived ? 'Delete permanently' : 'Delete', ICONS.trash)
-            ].join('');
+                cardIconBtn('delete', 'Move to trash', ICONS.trash)
+            ]).join('');
 
             return `
                 <div class="clip-card ${item.pinned ? 'pinned' : ''} ${collapsed ? 'is-collapsed' : ''}" data-id="${escapeHtml(id)}" data-large="${meta.large ? 1 : 0}">
@@ -3928,43 +4133,207 @@
             });
         }
 
+        // ---- Trash helpers -------------------------------------------------
+        function trashDaysLeft(entry) {
+            if (!(trashRetentionDays > 0)) return null;
+            const left = trashRetentionDays - (Date.now() - Date.parse(entry.trashedAt)) / 86400000;
+            return Number.isFinite(left) ? Math.max(0, Math.ceil(left)) : null;
+        }
+
+        function trashCountdownText(entry) {
+            const d = trashDaysLeft(entry);
+            if (d === null) return '';
+            return d <= 0 ? ' · deleting soon' : ` · deletes in ${d} ${d === 1 ? 'day' : 'days'}`;
+        }
+
+        function renderTabTrashCard(tab) {
+            const body = (tab.content || '').trim();
+            const timeAgo = 'Deleted ' + getTimeAgo(new Date(tab.trashedAt || tab.updatedAt || 0)) + trashCountdownText(tab);
+            return `
+                <div class="clip-card" data-kind="tab" data-id="${escapeHtml(String(tab.id))}">
+                    <div class="card-meta-row" style="cursor: default;">
+                        <div class="card-meta-left">
+                            <div class="card-type-tag">
+                                <span class="svg-icon">${ICONS.doc}</span>
+                                <span>Note tab</span>
+                                <span style="opacity: 0.4;">•</span>
+                                <span style="font-weight: 400; text-transform: none; color: var(--text-tertiary);">${escapeHtml(timeAgo)}</span>
+                            </div>
+                        </div>
+                        <div class="card-actions-hover">
+                            ${cardIconBtn('untrash-tab', 'Restore tab', ICONS.restore, 'restore')}
+                            ${cardIconBtn('purge-tab', 'Delete forever', ICONS.trash)}
+                        </div>
+                    </div>
+                    <div class="card-title">${escapeHtml(tab.name || 'Untitled')}</div>
+                    ${body ? `<div class="tab-snippet">${escapeHtml(body.slice(0, 400))}</div>` : '<div class="card-snippet" style="opacity:.6;">Empty tab</div>'}
+                </div>
+            `;
+        }
+
+        // ---- Search inside note tabs ---------------------------------------
+        function escapeRegExp(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function highlightHtml(text, q) {
+            const re = new RegExp(escapeRegExp(q), 'gi');
+            let out = '';
+            let last = 0;
+            let m;
+            while ((m = re.exec(text)) !== null) {
+                if (m[0].length === 0) { re.lastIndex++; continue; }
+                out += escapeHtml(text.slice(last, m.index)) + '<mark>' + escapeHtml(m[0]) + '</mark>';
+                last = m.index + m[0].length;
+            }
+            return out + escapeHtml(text.slice(last));
+        }
+
+        function searchTabs() {
+            if (!searchQuery || !(currentFilter === 'all' || currentFilter === 'text')) return [];
+            const re = new RegExp(escapeRegExp(searchQuery), 'gi');
+            const hits = [];
+            for (const t of visibleTabs()) {
+                const content = t.content || '';
+                let count = 0;
+                let first = -1;
+                let m;
+                re.lastIndex = 0;
+                while ((m = re.exec(content)) !== null && count < 999) {
+                    if (first === -1) first = m.index;
+                    count++;
+                    if (m[0].length === 0) re.lastIndex++;
+                }
+                const nameHit = new RegExp(escapeRegExp(searchQuery), 'i').test(t.name || '');
+                if (count || nameHit) hits.push({ tab: t, count, first, nameHit });
+            }
+            return hits;
+        }
+
+        function renderTabResultCard(hit) {
+            const { tab, count, first } = hit;
+            const content = tab.content || '';
+            let snippet = '';
+            if (first >= 0) {
+                const start = Math.max(0, first - 40);
+                const end = Math.min(content.length, first + searchQuery.length + 90);
+                snippet = (start > 0 ? '…' : '') + content.slice(start, end).replace(/\s+/g, ' ') + (end < content.length ? '…' : '');
+            }
+            const label = count ? `${count >= 999 ? '999+' : count} ${count === 1 ? 'match' : 'matches'}` : 'name match';
+            return `
+                <div class="clip-card tab-result" data-kind="tab-result" data-id="${escapeHtml(String(tab.id))}" title="Open this tab at the match">
+                    <div class="card-meta-row" style="cursor: pointer;">
+                        <div class="card-meta-left">
+                            <div class="card-type-tag">
+                                <span class="svg-icon">${ICONS.doc}</span>
+                                <span>Note tab</span>
+                                <span style="opacity: 0.4;">•</span>
+                                <span style="font-weight: 400; text-transform: none; color: var(--text-tertiary);">${label}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-title">${highlightHtml(tab.name || 'Untitled', searchQuery)}</div>
+                    ${snippet ? `<div class="tab-snippet">${highlightHtml(snippet, searchQuery)}</div>` : ''}
+                </div>
+            `;
+        }
+
+        function openTabAtMatch(id, q) {
+            setEditorMode('edit');
+            loadTab(id);
+            const ta = document.getElementById('editorTextarea');
+            const idx = q ? ta.value.search(new RegExp(escapeRegExp(q), 'i')) : -1;
+            if (window.innerWidth > 900) ta.focus();
+            if (idx >= 0) {
+                ta.setSelectionRange(idx, idx + q.length);
+                const line = ta.value.slice(0, idx).split('\n').length - 1;
+                ta.scrollTop = Math.max(0, line * 22 - ta.clientHeight / 3);
+                updateCursorStats();
+            }
+        }
+
         function renderFeed() {
             const container = document.getElementById('feedListContainer');
             const inArchive = currentFilter === 'archive';
+            const inTrash = currentFilter === 'trash';
             const filtered = getVisibleItems();
+            const trashedTabs = inTrash
+                ? tabs.filter(isTrashed).filter(t => !searchQuery || (t.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (t.content || '').toLowerCase().includes(searchQuery.toLowerCase()))
+                : [];
+            const tabHits = searchTabs();
+            const total = filtered.length + trashedTabs.length + tabHits.length;
 
-            document.getElementById('feedCountPill').textContent = filtered.length;
-            const segCount = document.getElementById('segClipsCount'); if (segCount) segCount.textContent = filtered.length;
-            const expandPill = document.getElementById('expandFeedCountPill'); if (expandPill) expandPill.textContent = filtered.length;
+            document.getElementById('feedCountPill').textContent = total;
+            const segCount = document.getElementById('segClipsCount'); if (segCount) segCount.textContent = total;
+            const expandPill = document.getElementById('expandFeedCountPill'); if (expandPill) expandPill.textContent = total;
             updateBadgeCounts();
             updateCollapseAllButton();
 
-            const banner = inArchive ? `
+            let banner = '';
+            if (inArchive) {
+                banner = `
                 <div class="feed-archive-banner">
                     <span class="svg-icon">${ICONS.archive}</span>
-                    <span>Archived items are hidden from your other views. Nothing here is deleted; restore anything any time.</span>
-                </div>` : '';
+                    <span class="banner-text">Archived items are hidden from your other views. Nothing here is deleted; restore anything any time.</span>
+                </div>`;
+            } else if (inTrash) {
+                const note = trashRetentionDays > 0
+                    ? `Items in Trash are deleted for good after ${trashRetentionDays} ${trashRetentionDays === 1 ? 'day' : 'days'}. Restore anything before then.`
+                    : 'Auto-delete is turned off. Items stay in Trash until you delete them.';
+                const all = allItems.filter(isTrashed).length + tabs.filter(isTrashed).length;
+                banner = `
+                <div class="feed-archive-banner trash">
+                    <span class="svg-icon">${ICONS.trash}</span>
+                    <span class="banner-text">${escapeHtml(note)}</span>
+                    ${all ? '<button class="ui-btn danger small" data-action="empty-trash">Empty trash</button>' : ''}
+                </div>`;
+            }
 
-            if (filtered.length === 0) {
+            if (total === 0) {
                 const searching = !!searchQuery;
+                const title = searching ? 'No matches' : (inTrash ? 'Trash is empty' : (inArchive ? 'Archive is empty' : 'No items found'));
+                const sub = searching ? 'Try a different search.'
+                    : (inTrash ? 'Deleted clips, files, and tabs wait here before they are removed for good.'
+                        : (inArchive ? 'Use the archive button on any clip or file to tuck it away here.' : 'Save a note or upload a file to get started.'));
                 container.innerHTML = banner + `
                     <div class="feed-empty">
-                        <div>${inArchive ? ICONS.archive : ICONS.file}</div>
-                        <div class="feed-empty-title">${searching ? 'No matches' : (inArchive ? 'Archive is empty' : 'No items found')}</div>
-                        <div class="feed-empty-sub">${searching ? 'Try a different search.' : (inArchive ? 'Use the archive button on any clip or file to tuck it away here.' : 'Save a note or upload a file to get started.')}</div>
+                        <div>${inTrash ? ICONS.trash : (inArchive ? ICONS.archive : ICONS.file)}</div>
+                        <div class="feed-empty-title">${title}</div>
+                        <div class="feed-empty-sub">${sub}</div>
                     </div>`;
                 return;
             }
 
-            let lastGroup = null;
             const parts = [banner];
-            for (const item of filtered) {
-                const group = groupLabelFor(item, inArchive);
-                if (group !== lastGroup) {
-                    parts.push(`<div class="feed-group-label">${escapeHtml(group)}</div>`);
-                    lastGroup = group;
+
+            if (tabHits.length) {
+                parts.push(`<div class="feed-group-label">In note tabs (${tabHits.length})</div>`);
+                tabHits.forEach(h => parts.push(renderTabResultCard(h)));
+                if (filtered.length) parts.push('<div class="feed-group-label">Clips</div>');
+            }
+
+            if (inTrash) {
+                const entries = [
+                    ...filtered.map(i => ({ kind: 'item', obj: i, at: Date.parse(i.trashedAt) || 0 })),
+                    ...trashedTabs.map(t => ({ kind: 'tab', obj: t, at: Date.parse(t.trashedAt) || 0 }))
+                ].sort((a, b) => b.at - a.at);
+                let lastGroup = null;
+                for (const e of entries) {
+                    const group = groupLabelFor(e.obj, 'trash');
+                    if (group !== lastGroup) { parts.push(`<div class="feed-group-label">${escapeHtml(group)}</div>`); lastGroup = group; }
+                    parts.push(e.kind === 'tab' ? renderTabTrashCard(e.obj) : renderCardHtml(e.obj));
                 }
-                parts.push(renderCardHtml(item));
+            } else {
+                const mode = inArchive ? 'archive' : null;
+                let lastGroup = null;
+                for (const item of filtered) {
+                    const group = groupLabelFor(item, mode);
+                    if (group !== lastGroup) {
+                        parts.push(`<div class="feed-group-label">${escapeHtml(group)}</div>`);
+                        lastGroup = group;
+                    }
+                    parts.push(renderCardHtml(item));
+                }
             }
             container.innerHTML = parts.join('');
             measureCards();
@@ -4011,10 +4380,26 @@
         }
 
         async function onFeedClick(e) {
+            if (e.target.closest('[data-action="empty-trash"]')) {
+                emptyTrash();
+                return;
+            }
             const card = e.target.closest('.clip-card');
             if (!card) return;
             const id = card.dataset.id;
+            const kind = card.dataset.kind;
             const actionEl = e.target.closest('[data-action]');
+
+            if (kind === 'tab-result') {
+                openTabAtMatch(id, searchQuery);
+                return;
+            }
+            if (kind === 'tab') {
+                if (!actionEl) return;
+                if (actionEl.dataset.action === 'untrash-tab') trashTab(id, false);
+                else if (actionEl.dataset.action === 'purge-tab') purgeTab(id);
+                return;
+            }
 
             if (!actionEl) {
                 // Clicking the header row (but not a link or text) toggles the card
@@ -4033,8 +4418,100 @@
                 case 'download': if (item && item.filename) downloadClipFile(item.filename, item.name || item.title); break;
                 case 'archive': archiveItems([id], true); break;
                 case 'restore': archiveItems([id], false); break;
-                case 'delete': deleteClip(id); break;
+                case 'delete': trashItems([id], true); break;
+                case 'untrash': trashItems([id], false); break;
+                case 'purge': purgeItems([id]); break;
                 case 'view': openLightbox(id); break;
+            }
+        }
+
+        // ---- Trash actions ---------------------------------------------------
+        function describeItems(ids) {
+            const first = allItems.find(i => String(i.id) === String(ids[0]));
+            const name = first ? (first.name || first.title || 'item') : 'item';
+            return ids.length === 1 ? `"${name.length > 32 ? name.slice(0, 32) + '...' : name}"` : `${ids.length} items`;
+        }
+
+        async function trashItems(ids, trashed) {
+            ids = ids.map(String);
+            try {
+                const res = await fetch(`${API_BASE}/items/trash`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids, trashed })
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                (data.items || []).forEach(updated => {
+                    const idx = allItems.findIndex(i => String(i.id) === String(updated.id));
+                    if (idx !== -1) allItems[idx] = updated;
+                });
+                renderFeed();
+                await fetchAndRenderFtFiles();
+
+                if ((data.changed || []).length) {
+                    const what = describeItems(data.changed);
+                    showToast(trashed ? `Moved ${what} to trash` : `Restored ${what} from trash`, 'success', {
+                        label: 'Undo',
+                        onClick: () => trashItems(data.changed, !trashed)
+                    });
+                }
+                return true;
+            } catch (e) {
+                showToast(`Could not ${trashed ? 'move to trash' : 'restore'}: ${e.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function purgeItems(ids) {
+            ids = ids.map(String);
+            const name = describeItems(ids);
+            const ok = await askConfirm({
+                title: ids.length === 1 ? `Delete ${name} forever?` : `Delete ${ids.length} items forever?`,
+                message: 'This cannot be undone. Any file is removed from the Pi.',
+                confirmText: 'Delete forever',
+                danger: true
+            });
+            if (!ok) return false;
+            try {
+                for (const id of ids) {
+                    await fetch(`${API_BASE}/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                }
+                allItems = allItems.filter(i => !ids.includes(String(i.id)));
+                renderFeed();
+                fetchAndRenderFtFiles();
+                showToast('Deleted forever');
+                return true;
+            } catch (e) {
+                showToast('Failed to delete', 'error');
+                return false;
+            }
+        }
+
+        async function emptyTrash() {
+            const count = allItems.filter(isTrashed).length + tabs.filter(isTrashed).length;
+            if (!count) return;
+            const ok = await askConfirm({
+                title: 'Empty trash?',
+                message: `${count} ${count === 1 ? 'item' : 'items'} will be deleted forever, including uploaded files and note tabs. This cannot be undone.`,
+                confirmText: 'Empty trash',
+                danger: true
+            });
+            if (!ok) return;
+            try {
+                const res = await fetch(`${API_BASE}/trash/empty`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ confirm: true })
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                await Promise.all([fetchAllItems(), fetchAndRenderFtFiles()]);
+                tabs = tabs.filter(t => !isTrashed(t));
+                renderTabs();
+                renderFeed();
+                showToast('Trash emptied');
+            } catch (e) {
+                showToast('Could not empty trash', 'error');
             }
         }
 
@@ -4101,16 +4578,17 @@
         }
 
         function updateBadgeCounts() {
-            const live = allItems.filter(i => !isArchived(i));
+            const live = allItems.filter(i => !isArchived(i) && !isTrashed(i));
             const setText = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
             setText('badgeAll', live.length);
             setText('badgePinned', live.filter(i => i.pinned).length);
             setText('badgeLinks', live.filter(i => matchesFilter(i, 'link')).length);
             setText('badgeCode', live.filter(i => matchesFilter(i, 'code')).length);
             setText('badgeFiles', live.filter(i => i.type === 'file').length);
-            setText('badgeArchive', allItems.length - live.length);
+            setText('badgeArchive', allItems.filter(i => isArchived(i) && !isTrashed(i)).length);
+            setText('badgeTrash', allItems.filter(isTrashed).length + tabs.filter(isTrashed).length);
             setText('badgeTransferFiles', ftStoredFiles.length
-                ? ftStoredFiles.filter(f => f.archived !== true).length
+                ? ftStoredFiles.filter(f => f.archived !== true && f.trashed !== true).length
                 : live.filter(i => i.type === 'file' || !!i.filename).length);
         }
 
@@ -4195,30 +4673,9 @@
             showToast(`Downloading "${originalName || filename}"`);
         }
 
+        // "Delete" in the UI moves to Trash; permanent deletion happens from the Trash view.
         async function deleteClip(id) {
-            const item = allItems.find(i => String(i.id) === String(id));
-            const isFile = item && (item.type === 'file' || !!item.filename);
-            const name = item ? (item.name || item.title || 'this clip') : 'this clip';
-            const ok = await askConfirm({
-                title: isFile ? `Delete "${name}"?` : 'Delete this clip?',
-                message: isFile
-                    ? 'This permanently deletes the file from the Pi. Use Archive instead if you only want it out of the way.'
-                    : 'This permanently deletes the clip. Use Archive instead if you only want it out of the way.',
-                confirmText: 'Delete',
-                danger: true
-            });
-            if (!ok) return;
-            try {
-                const res = await fetch(`${API_BASE}/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
-                if (res.ok) {
-                    allItems = allItems.filter(i => String(i.id) !== String(id));
-                    renderFeed();
-                    fetchAndRenderFtFiles();
-                    showToast('Clip deleted');
-                }
-            } catch (e) {
-                showToast('Failed to delete', 'error');
-            }
+            return trashItems([id], true);
         }
 
         // ====================================================================
@@ -4246,7 +4703,11 @@
             document.getElementById('filePicker').value = '';
         }
 
+        function isFileDrag(e) {
+            return !!(e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files'));
+        }
         window.addEventListener('dragover', (e) => {
+            if (!isFileDrag(e)) return; // e.g. reordering a tab must not show the upload overlay
             e.preventDefault();
             document.getElementById('dragOverlay').classList.add('active');
         });
@@ -4256,6 +4717,7 @@
             }
         });
         window.addEventListener('drop', (e) => {
+            if (!isFileDrag(e)) return;
             e.preventDefault();
             document.getElementById('dragOverlay').classList.remove('active');
             if (e.dataTransfer.files && e.dataTransfer.files.length) {
@@ -4316,7 +4778,7 @@
         }
 
         function getFtScopedFiles() {
-            return ftStoredFiles.filter(f => (f.archived === true) === (ftScope === 'archived'));
+            return ftStoredFiles.filter(f => f.trashed !== true && (f.archived === true) === (ftScope === 'archived'));
         }
 
         function sortFtFiles(list) {
@@ -4452,7 +4914,7 @@
                             <div class="ft-media-card-overlay">
                                 <button class="ft-media-card-btn view" data-action="view" title="View fullscreen">${ICONS.view}</button>
                                 <button class="ft-media-card-btn ${archivedScope ? 'view' : 'archive'}" data-action="${archivedScope ? 'restore' : 'archive'}" title="${archivedScope ? 'Restore from archive' : 'Move to archive'}">${archivedScope ? ICONS.restore : ICONS.archive}</button>
-                                <button class="ft-media-card-btn danger" data-action="delete" title="Delete photo">${ICONS.trash}</button>
+                                <button class="ft-media-card-btn danger" data-action="delete" title="Move photo to trash">${ICONS.trash}</button>
                             </div>
                         </div>
                         <div class="ft-media-card-info">
@@ -4558,7 +5020,7 @@
                                     <span>curl</span>
                                 </button>
                                 ${archiveBtn}
-                                <button class="ft-action-btn danger" data-action="delete" title="Delete permanently">${ICONS.trash}</button>
+                                <button class="ft-action-btn danger" data-action="delete" title="Move to trash">${ICONS.trash}</button>
                             </div>
                         </td>
                     </tr>
@@ -4608,8 +5070,9 @@
         }
 
         function updateFtBadgesAndStats() {
-            const archivedCount = ftStoredFiles.filter(f => f.archived === true).length;
-            const activeCount = ftStoredFiles.length - archivedCount;
+            const live = ftStoredFiles.filter(f => f.trashed !== true);
+            const archivedCount = live.filter(f => f.archived === true).length;
+            const activeCount = live.length - archivedCount;
             const scoped = getFtScopedFiles();
             const totalBytes = scoped.reduce((acc, f) => acc + (f.size || 0), 0);
 
@@ -4719,30 +5182,10 @@
             showToast('Copied curl retrieval template');
         }
 
+        // Moves the file to Trash (recoverable for the retention period).
         async function deleteFtFile(id, name) {
-            const ok = await askConfirm({
-                title: `Delete "${name}"?`,
-                message: 'This permanently deletes the file from the Pi. Use Archive if you only want it out of the way.',
-                confirmText: 'Delete',
-                danger: true
-            });
-            if (!ok) return;
-            try {
-                let res = await fetch(`${API_BASE}/files/${encodeURIComponent(id)}`, { method: 'DELETE' });
-                if (!res.ok) {
-                    res = await fetch(`${API_BASE}/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
-                }
-                if (res.ok) {
-                    ftSelected.delete(String(id));
-                    showToast(`Deleted "${name}"`);
-                    await fetchAndRenderFtFiles();
-                    await fetchAllItems();
-                } else {
-                    showToast('Failed to delete file', 'error');
-                }
-            } catch (e) {
-                showToast('Error deleting file: ' + e.message, 'error');
-            }
+            ftSelected.delete(String(id));
+            return trashItems([id], true);
         }
 
         // ====================================================================
@@ -4759,7 +5202,7 @@
             const sourceList = (currentAppView === 'file-transfer' && ftStoredFiles.length) ? ftStoredFiles : allItems;
 
             function processItem(item) {
-                if (isArchived(item) !== galleryArchivedMode) return;
+                if (isTrashed(item) || isArchived(item) !== galleryArchivedMode) return;
                 const isFile = item.type === 'file' || !!item.filename;
                 const fileType = item.fileType || (isFile ? 'file' : item.type);
                 const filename = item.filename || '';
@@ -4908,36 +5351,31 @@
             }
         }
 
+        async function archiveCurrentGalleryPhoto() {
+            if (!galleryPhotos.length) return;
+            const photo = galleryPhotos[currentGalleryIndex];
+            const ok = await archiveItems([photo.id], !galleryArchivedMode);
+            if (!ok) return;
+            removeCurrentGalleryPhoto(photo);
+        }
+
+        function removeCurrentGalleryPhoto(photo) {
+            const idx = galleryPhotos.findIndex(p => String(p.id) === String(photo.id));
+            if (idx !== -1) galleryPhotos.splice(idx, 1);
+            if (galleryPhotos.length === 0) {
+                closeLightbox();
+            } else {
+                if (currentGalleryIndex >= galleryPhotos.length) currentGalleryIndex = galleryPhotos.length - 1;
+                renderGalleryPhoto();
+            }
+        }
+
+        // Moves the photo to Trash (with Undo) instead of deleting it.
         async function deleteCurrentGalleryPhoto() {
             if (!galleryPhotos.length) return;
             const photo = galleryPhotos[currentGalleryIndex];
-            const photoName = photo.name || photo.title || 'this photo';
-            const ok = await askConfirm({
-                title: `Delete "${photoName}"?`,
-                message: 'This permanently deletes the photo from the Pi. Press Archive instead if you only want it out of the way.',
-                confirmText: 'Delete',
-                danger: true
-            });
-            if (!ok) return;
-
-            try {
-                let res = await fetch(`${API_BASE}/files/${encodeURIComponent(photo.id)}`, { method: 'DELETE' });
-                if (!res.ok) {
-                    res = await fetch(`${API_BASE}/items/${encodeURIComponent(photo.id)}`, { method: 'DELETE' });
-                }
-                if (res.ok) {
-                    showToast(`Deleted "${photoName}"`);
-                    allItems = allItems.filter(i => String(i.id) !== String(photo.id) && i.filename !== photo.filename);
-                    ftStoredFiles = ftStoredFiles.filter(f => String(f.id) !== String(photo.id) && f.filename !== photo.filename);
-                    renderFeed();
-                    fetchAndRenderFtFiles();
-                    removeCurrentGalleryPhoto(photo);
-                } else {
-                    showToast('Failed to delete photo', 'error');
-                }
-            } catch (err) {
-                showToast('Error deleting photo: ' + err.message, 'error');
-            }
+            const ok = await trashItems([photo.id], true);
+            if (ok) removeCurrentGalleryPhoto(photo);
         }
 
 
@@ -5250,6 +5688,11 @@
 
         window.addEventListener('keydown', (e) => {
             if (dialogDepth > 0) return;
+            if (e.altKey && e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+                e.preventDefault();
+                moveActiveTab(e.key === 'ArrowLeft' ? -1 : 1);
+                return;
+            }
             if ((e.altKey && (e.key === 'c' || e.key === 'C')) || ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'e' || e.key === 'E'))) {
                 e.preventDefault();
                 toggleFeedPanel();
@@ -5371,6 +5814,12 @@
             if (hint) hint.textContent = /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent || '') ? '⌘F' : 'Ctrl F';
             syncFilterUi();
             updateCollapseAllButton();
+            fetch(`${API_BASE}/health`).then(r => r.json()).then(h => {
+                if (typeof h.trashRetentionDays === 'number') {
+                    trashRetentionDays = h.trashRetentionDays;
+                    renderFeed();
+                }
+            }).catch(() => {});
         }
 
         // Paste a screenshot or file straight into the page to upload it.

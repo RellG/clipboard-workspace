@@ -8,7 +8,7 @@ Built to replace the habit of emailing myself links and screenshots. It runs on 
 ![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Tests](https://img.shields.io/badge/Tests-50%2F50%20Passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-70%2F70%20Passing-brightgreen)
 
 ---
 
@@ -39,7 +39,13 @@ Built to replace the habit of emailing myself links and screenshots. It runs on 
 
 **Collapsible note tabs.** The row of scratchpad tabs can be collapsed to a single slim line showing the active tab.
 
-**Safe by default.** Loading a clip into the editor opens it in a *new* tab instead of overwriting your current note; deleting a tab or file asks for confirmation; pasting a screenshot uploads it.
+**Reorder tabs.** Drag a tab to a new position, or use the arrow buttons in the editor toolbar (or `Alt+Shift+Left/Right`) to move the active tab. The order is saved and syncs to your other devices.
+
+**Search inside notes.** The search box also looks through the text of every note tab. Matches appear as highlighted snippets at the top of the clips panel; click one to open that tab with the match selected.
+
+**Trash with auto-purge.** "Delete" on a clip, file, photo, or note tab moves it to Trash instead of removing it (with an Undo button). Trash shows how many days each item has left; items are deleted for good after 30 days (`TRASH_RETENTION_DAYS`, `0` turns auto-purge off). Restore anything before then, delete it forever, or empty the whole trash (always behind a confirmation). Files stay on disk while they are in Trash, and a snapshot of the database is taken before every purge.
+
+**Safe by default.** Loading a clip into the editor opens it in a *new* tab instead of overwriting your current note; deleting is recoverable (Trash) and permanent deletion always asks first; pasting a screenshot uploads it.
 
 **Mobile-first.** Segmented navigation, touch-sized targets, and safe-area insets so it works correctly on a phone with a notch.
 
@@ -124,13 +130,14 @@ npm test
 
 `npm test` always starts its own isolated server in a temporary directory, so it can never touch real data. (Pointing it at a live server requires an explicit `--target=` / `TEST_BASE_URL`, and prints a warning: the suite creates and deletes items.)
 
-Executes the complete E2E test suite covering 50 test specifications across 6 tiers:
+Executes the complete E2E test suite covering 70 test specifications across 7 tiers:
 - **Tier 1**: Core API Contracts & Endpoints (8 tests)
 - **Tier 2**: Boundary, Security & Error Conditions (12 tests)
 - **Tier 3**: Concurrency, Persistence & SSE Synchronization (2 tests)
 - **Tier 4**: Frontend HTML/DOM Inspection & Ergonomics (5 tests)
 - **Tier 5**: Lossless File Transfer & Integrity Verification (7 tests)
 - **Tier 6**: Archive API & legacy-data safety (16 tests): boots against a legacy-shaped `db.json` and asserts every legacy item, tab, and upload is byte-for-byte unchanged
+- **Tier 7**: Trash, auto-purge & tab ordering (20 tests): restore returns items to their exact shape; auto-purge only removes entries trashed longer than the retention period (never entries with a missing or invalid date, archived items, or a file still used by another item)
 
 ### Configuration
 
@@ -142,7 +149,7 @@ Ports and the upload ceiling are set in `docker-compose.yml` (`8084:80`), `nginx
 
 Two host-mounted volumes hold state, and both are gitignored:
 
-- `./data` — `db.json`, the item and tab store, plus `snapshots/` (a copy of `db.json` taken at every server start and hourly while in use; the newest 20 boot and 30 hourly snapshots are kept)
+- `./data` — `db.json`, the item and tab store, plus `snapshots/` (a copy of `db.json` taken at every server start and hourly while in use; the newest 20 boot, 30 hourly, and 10 pre-purge snapshots are kept)
 - `./uploads` — uploaded files
 
 ---
@@ -152,23 +159,28 @@ Two host-mounted volumes hold state, and both are gitignored:
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/events` | SSE stream of live item and tab changes |
-| `GET` | `/api/items` | List items — supports search, `type`, and `archived=true|false` filtering (omit `archived` for everything) |
+| `GET` | `/api/items` | List items — supports search, `type`, and `archived=true\|false` and `trashed=true\|false` filtering (omit them for everything) |
 | `POST` | `/api/items` | Create a text or link item |
 | `PUT` | `/api/items/:id` | Update an item |
 | `PATCH` | `/api/items/:id/pin` | Toggle pinned state |
-| `PATCH` | `/api/items/:id/archive` | Archive / restore (`{"archived": true|false}`, omit to toggle). Never deletes anything |
-| `POST` | `/api/items/archive` | Bulk archive / restore: `{"ids": [...], "archived": true|false}` |
-| `DELETE` | `/api/items/:id` | Delete an item and its file |
-| `GET` | `/api/files` | List stored files with metadata, sizes, and SHA-256 hashes (`archived=true|false` to filter) |
+| `PATCH` | `/api/items/:id/trash` | Move to / restore from Trash (`{"trashed": true\|false}`, omit to toggle). Files stay on disk |
+| `POST` | `/api/items/trash` | Bulk trash / restore: `{"ids": [...], "trashed": true\|false}` |
+| `POST` | `/api/trash/empty` | Permanently delete everything in Trash. Requires `{"confirm": true}` |
+| `PATCH` | `/api/items/:id/archive` | Archive / restore (`{"archived": true\|false}`, omit to toggle). Never deletes anything |
+| `POST` | `/api/items/archive` | Bulk archive / restore: `{"ids": [...], "archived": true\|false}` |
+| `DELETE` | `/api/items/:id` | **Permanently** delete an item and its file (the UI uses Trash instead; this is what "Delete forever" calls) |
+| `GET` | `/api/files` | List stored files with metadata, sizes, and SHA-256 hashes (`archived=true\|false` to filter) |
 | `POST` | `/api/files/upload` | Upload one or multiple files losslessly with SHA-256 generation |
 | `GET` | `/api/files/:id` | Get file metadata and download link |
 | `GET` | `/api/files/:id/download` | Download file with RFC 6266 attachment header, ETag, and Range support |
 | `DELETE` | `/api/files/:id` | Delete file from disk and database |
 | `POST` | `/api/file` | Legacy file upload endpoint |
 | `GET` | `/api/file/:filename` | Serve a file — Range-aware; `?download=1` to force download |
-| `GET` | `/api/tabs` | List scratchpad tabs |
+| `GET` | `/api/tabs` | List scratchpad tabs (`trashed=true\|false` to filter) |
 | `POST` | `/api/tabs` | Create a tab |
 | `PUT` | `/api/tabs/:id` | Update tab content or metadata |
+| `PUT` | `/api/tabs/order` | Reorder tabs: `{"ids": [...]}`. Only the order changes, never tab contents |
+| `PATCH` | `/api/tabs/:id/trash` | Move a tab to / restore it from Trash (the `scratchpad` and `notes` tabs cannot be trashed) |
 | `DELETE` | `/api/tabs/:id` | Delete a tab |
 | `GET` | `/api/health` | Health check |
 

@@ -18,8 +18,10 @@ Self-hosted shared clipboard / scratchpad. Single-file vanilla-JS frontend (`ind
 2. **Never run `npm test` (or any test) against the live server.** The suite creates and deletes items. `npm test` now always starts an isolated server in a temp dir; only `--target=`/`TEST_BASE_URL` points it elsewhere, and that prints a warning. (Before this was fixed it auto-attached to `localhost:8084`.) Do not run tests on the Pi at all; run them on the PC.
 3. **Test server changes on a copy first**: copy `db.json` + `uploads/` to a `mktemp -d`, run `PORT=3199 NODE_PATH=~/Clipboard/node_modules node ~/Clipboard/server.js` from that dir, and `cmp` the db against the backup. Stop it by PID (see below).
 4. New fields must be optional and default-off so old items are valid as-is. Archive is the model: `archived: true` + `archivedAt`, and restoring **deletes** both keys so an item returns to its exact original shape. Archiving never touches `updatedAt` or files on disk.
-5. Anything destructive (delete tab, delete file) needs a confirm dialog. Prefer Archive.
-6. Safety net: `data/snapshots/` holds `db-<iso>-boot.json` (every server start; keep 20) and `-auto.json` (hourly; keep 30). `db.json.bak` only mirrors the last save, so it is **not** a history.
+5. "Delete" in the UI is **Trash**, not removal: `trashed: true` + `trashedAt` on items and tabs (restore deletes both keys; files stay on disk; `updatedAt` untouched). `DELETE /api/items/:id` and `DELETE /api/tabs/:id` remain permanent and are only called from the Trash view ("Delete forever", confirm dialog) and by API users. `POST /api/trash/empty` needs `{confirm:true}`.
+   - **Auto-purge** runs after server start and hourly: it removes only entries with `trashed === true` AND a valid `trashedAt` older than `TRASH_RETENTION_DAYS` (default 30; `0` disables). Missing or unparsable `trashedAt` is never purged. A `-purge.json` snapshot of the full db is written first, and a file is only unlinked if no remaining item references it. Do not loosen this without updating Tier 7.
+   - Archive and Trash flags are independent (archive -> trash -> restore stays archived).
+6. Safety net: `data/snapshots/` holds `db-<iso>-boot.json` (every server start; keep 20) and `-auto.json` (hourly; keep 30), `-purge.json` (before any purge or Empty trash; keep 10). `db.json.bak` only mirrors the last save, so it is **not** a history.
 7. After a deploy, verify: `curl localhost:8084/api/health` (item/tab counts), `cmp data/db.json <backup>/db.json`, and `sha256sum -c <backup>/uploads.sha256` from inside `uploads/`.
 
 ## Develop / test / deploy workflow
@@ -29,7 +31,7 @@ The PC has Node, so develop locally and only use the Pi for git + Docker:
 ```bash
 # pull the source down (PC, Git Bash)
 ssh rpi 'cd ~/Clipboard && tar cf - server.js index.html package.json package-lock.json README.md CLAUDE.md Dockerfile docker-compose.yml nginx.conf start.sh .gitignore tests' | tar xf -
-npm install && npm test                # isolated temp-dir server, 50 tests
+npm install && npm test                # isolated temp-dir server, 70 tests
 
 # push changes back, then on the Pi
 tar cf - <changed files> | ssh rpi 'cd ~/Clipboard && tar xf -'
@@ -47,6 +49,8 @@ ssh rpi 'cd ~/Clipboard && docker compose up -d --build'   # index.html is baked
 - `index.html` (~5k lines): all CSS/JS inline. State is `allItems`, `tabs`, `ftStoredFiles`. The feed and file table use **event delegation with `data-action` attributes and `escapeHtml`'d values**; do not reintroduce inline `onclick="fn('${name}')"` strings (filenames with quotes break out of them).
 - Per-browser view prefs live in `localStorage` via `Prefs`: `clipboard_cards_mode`, `clipboard_card_overrides`, `clipboard_tabs_collapsed`, `clipboard_feed_collapsed`, `rell_theme`. Never store anything important there.
 - The tab bar precedes `.workspace-split` in the DOM, so mobile hiding uses `body.view-clips` (toggled in `switchMobileView`), not a sibling selector.
+- Tabs: `db.tabs` array order IS the tab order (`PUT /api/tabs/order` registers before `PUT /api/tabs/:id`, which upserts, so route order matters). The client renders `visibleTabs()` (non-trashed); the `tabs` array also holds trashed tabs so the Trash view and Undo work. Window-level drag handlers ignore non-file drags so reordering a tab does not trigger the upload overlay.
+- Search: the feed search also scans tab names/contents client-side (`searchTabs()`, shown for the All and Notes filters, trashed tabs excluded) and `openTabAtMatch()` selects the first match.
 - The `# tags` UI was removed on purpose; the `tags` array is still written and kept in the data and API for backward compatibility. Do not show or search it in the UI.
 - Clicking a clip no longer loads it into the editor (that silently replaced the tab's text on the next keystroke). Use the "Open in a new editor tab" button.
 - Upload limit is 100MB in three places: Multer in `server.js`, `client_max_body_size` in `nginx.conf`, and the docs. Change all together.
@@ -55,4 +59,4 @@ ssh rpi 'cd ~/Clipboard && docker compose up -d --build'   # index.html is baked
 
 ## Ideas not yet done
 
-Optional PIN/auth, trash with timed auto-purge, tab reordering, cross-tab search, per-clip expiry, and uploading large files in chunks.
+Optional PIN/auth, per-clip expiry, touch drag-and-drop for tabs (the toolbar arrows cover touch today), and uploading large files in chunks.

@@ -2,60 +2,10 @@ const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('crypto');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
-const { getFreePort, waitForHealthy, fetchApi, PROJECT_ROOT, SERVER_SCRIPT } = require('./test_helpers');
+const { getFreePort, waitForHealthy, fetchApi, PROJECT_ROOT, SERVER_SCRIPT, startSeededServer, sha } = require('./test_helpers');
 
-/**
- * These tests ALWAYS run against their own isolated server (seeded temp dir), even when the runner is
- * pointed at another target, because they need a known starting database.
- */
-async function startSeededServer(seedDb, seedFiles = {}) {
-    const port = await getFreePort();
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'clipboard-tier6-'));
-    const dataDir = path.join(tempDir, 'data');
-    const uploadsDir = path.join(tempDir, 'uploads');
-    fs.mkdirSync(dataDir, { recursive: true });
-    fs.mkdirSync(uploadsDir, { recursive: true });
-    fs.writeFileSync(path.join(dataDir, 'db.json'), JSON.stringify(seedDb, null, 2), 'utf8');
-    for (const [name, bytes] of Object.entries(seedFiles)) {
-        fs.writeFileSync(path.join(uploadsDir, name), bytes);
-    }
-
-    const proc = spawn(process.execPath, [SERVER_SCRIPT], {
-        cwd: tempDir,
-        env: { ...process.env, PORT: String(port), NODE_PATH: path.join(PROJECT_ROOT, 'node_modules') },
-        stdio: ['ignore', 'pipe', 'pipe']
-    });
-    let logs = '';
-    proc.stdout.on('data', d => { logs += d; });
-    proc.stderr.on('data', d => { logs += d; });
-
-    const baseUrl = `http://127.0.0.1:${port}`;
-    try {
-        await waitForHealthy(baseUrl, 8000);
-    } catch (err) {
-        proc.kill('SIGKILL');
-        throw new Error(`${err.message}\n${logs}`);
-    }
-
-    return {
-        baseUrl, tempDir, dataDir, uploadsDir, proc,
-        readDb: () => JSON.parse(fs.readFileSync(path.join(dataDir, 'db.json'), 'utf8')),
-        async stop() {
-            const p = this.proc; // read at call time: restarts swap the process
-            await new Promise(resolve => {
-                p.once('exit', resolve);
-                p.kill('SIGTERM');
-                setTimeout(() => { p.kill('SIGKILL'); resolve(); }, 2500);
-            });
-            try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch {}
-        }
-    };
-}
-
-const sha = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
 
 /** Legacy-shaped data: mirrors the shape of a real long-lived db.json (no `archived` anywhere). */
 function buildLegacySeed() {
