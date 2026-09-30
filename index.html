@@ -898,10 +898,7 @@
             font-size: 12.5px;
             color: var(--text-secondary);
             line-height: 1.5;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+            white-space: pre-wrap;
             word-break: break-word;
         }
 
@@ -966,22 +963,6 @@
             padding-bottom: 0;
             margin-bottom: 0;
             border-bottom: none;
-        }
-
-        .card-tags-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            margin-top: 4px;
-        }
-        .mini-tag {
-            font-size: 10px;
-            font-family: var(--font-mono);
-            color: var(--text-tertiary);
-            background: var(--bg-tertiary);
-            padding: 2px 6px;
-            border-radius: 4px;
-            border: 1px solid var(--border-subtle);
         }
 
         /* Code Card */
@@ -2301,6 +2282,291 @@
             }
         }
 
+        /* ==================================================================== */
+        /* Collapsible clips, archive, tab-bar collapse, dialogs                */
+        /* ==================================================================== */
+
+        /* Clip cards: header toggles, body collapses, text is selectable */
+        .clip-card { cursor: default; }
+        .clip-card:hover { transform: none; }
+        .card-meta-row { cursor: pointer; gap: 8px; }
+        .card-meta-left { display: flex; align-items: center; gap: 6px; min-width: 0; }
+        .card-toggle {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            border: none;
+            background: transparent;
+            color: var(--text-tertiary);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.18s ease, color 0.12s ease, background 0.12s ease;
+        }
+        .card-toggle:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+        .clip-card.is-collapsed .card-toggle { transform: rotate(-90deg); }
+        .card-body {
+            position: relative;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+        .card-body.is-collapsed {
+            max-height: 88px;
+            overflow: hidden;
+            -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+        }
+        .card-more-btn {
+            align-self: flex-start;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            margin-top: 2px;
+            padding: 3px 8px;
+            font-size: 11.5px;
+            font-weight: 500;
+            font-family: var(--font-sans);
+            color: var(--text-accent);
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+        .card-more-btn:hover { background: var(--accent-glow); border-color: var(--text-accent); }
+        .clip-card.is-collapsed.overflowing .card-more-btn,
+        .clip-card:not(.is-collapsed)[data-large="1"] .card-more-btn { display: inline-flex; }
+        .card-body.is-collapsed.fits { -webkit-mask-image: none; mask-image: none; }
+        .card-more-meta { color: var(--text-tertiary); font-weight: 400; }
+        .card-archived-chip {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--accent-amber);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: 999px;
+            padding: 1px 7px;
+        }
+        .mini-btn.restore { color: var(--accent-green); }
+        .card-title { word-break: break-word; }
+
+        /* Feed: search + date groups */
+        .feed-search-row { padding: 8px 12px 0 12px; flex-shrink: 0; }
+        .feed-search-row .search-input { padding-top: 6px; padding-bottom: 6px; }
+        .feed-group-label {
+            font-size: 10.5px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-tertiary);
+            padding: 4px 2px 0 2px;
+            flex-shrink: 0;
+        }
+        .feed-group-label:not(:first-child) { margin-top: 6px; }
+        .feed-archive-banner {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+        }
+        .feed-empty { padding: 40px 16px; text-align: center; color: var(--text-tertiary); }
+        .feed-empty .feed-empty-title { font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-top: 8px; }
+        .feed-empty .feed-empty-sub { font-size: 12px; margin-top: 4px; }
+
+        /* Tab bar collapse */
+        .tabs-collapse-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            flex-shrink: 0;
+            color: var(--text-secondary);
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            margin-right: 4px;
+            transition: background 0.15s ease, color 0.15s ease, transform 0.18s ease;
+        }
+        .tabs-collapse-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .tabs-header-bar.is-collapsed .tabs-collapse-btn { transform: rotate(-90deg); }
+        .tabs-collapsed-label {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 12.5px;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            padding: 3px 8px;
+            border-radius: var(--radius-sm);
+            white-space: nowrap;
+        }
+        .tabs-collapsed-label:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .tabs-collapsed-label strong { color: var(--text-primary); font-weight: 500; }
+        .tabs-header-bar.is-collapsed { height: 30px; }
+        .tabs-header-bar.is-collapsed .notepad-tab,
+        .tabs-header-bar.is-collapsed .new-tab-btn { display: none; }
+        .tabs-header-bar.is-collapsed .tabs-collapsed-label { display: inline-flex; }
+
+        /* File view: archive toggle, sort, bulk selection */
+        .ft-segmented {
+            display: inline-flex;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 999px;
+            padding: 3px;
+            gap: 2px;
+        }
+        .ft-seg-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 12.5px;
+            font-weight: 500;
+            font-family: var(--font-sans);
+            padding: 5px 12px;
+            border-radius: 999px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+        .ft-seg-btn.active { background: var(--bg-elevated); color: var(--text-primary); box-shadow: 0 0 0 1px var(--border-subtle); }
+        .ft-seg-count { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-tertiary); }
+        .ft-select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            border-radius: var(--radius-sm);
+            padding: 6px 8px;
+            font-size: 12px;
+            font-family: var(--font-sans);
+            outline: none;
+            cursor: pointer;
+        }
+        .ft-select:focus { border-color: var(--border-focus); }
+        .ft-bulk-bar {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            background: var(--accent-glow);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            font-size: 12.5px;
+            color: var(--text-primary);
+            flex-shrink: 0;
+        }
+        .ft-bulk-bar.visible { display: flex; }
+        .ft-bulk-bar .ft-bulk-count { font-weight: 600; }
+        .ft-bulk-spacer { flex: 1; }
+        .ft-row-check, .ft-check-all {
+            width: 16px;
+            height: 16px;
+            accent-color: #0284c7;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .ft-table tbody tr.selected { background: var(--accent-glow); }
+        .ft-media-card-btn.archive:hover { background: var(--accent-amber); color: #000; border-color: var(--accent-amber); }
+        .ft-action-btn.archive:hover { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.4); }
+        .ft-action-btn.restore:hover { background: rgba(34, 197, 94, 0.15); color: var(--accent-green); border-color: rgba(34, 197, 94, 0.4); }
+        .media-action-pill-btn.archive:hover { background: var(--accent-amber); color: #000; border-color: var(--accent-amber); }
+
+        /* Dialogs (replace native confirm/prompt) */
+        .ui-dialog-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 3000;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            animation: toast-in 0.15s ease;
+        }
+        .ui-dialog {
+            width: min(420px, 100%);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-hover);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-elevated);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            user-select: text;
+        }
+        .ui-dialog-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+        .ui-dialog-message { font-size: 13px; color: var(--text-secondary); line-height: 1.5; word-break: break-word; }
+        .ui-dialog input[type="text"] {
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: var(--radius-md);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: var(--font-sans);
+            outline: none;
+        }
+        .ui-dialog input[type="text"]:focus { border-color: var(--border-focus); box-shadow: 0 0 0 2px var(--accent-glow); }
+        .ui-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+        .ui-btn {
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: var(--font-sans);
+            font-weight: 500;
+            padding: 7px 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            min-height: 34px;
+        }
+        .ui-btn:hover { background: var(--bg-active); }
+        .ui-btn.primary { background: linear-gradient(135deg, #0284c7, #0369a1); border-color: transparent; color: #fff; }
+        .ui-btn.danger { background: var(--accent-rose); border-color: transparent; color: #fff; }
+
+        /* Toast with action (Undo) */
+        .toast-action-btn {
+            margin-left: 6px;
+            background: transparent;
+            border: 1px solid var(--border-hover);
+            color: var(--text-accent);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 9px;
+            border-radius: 999px;
+            cursor: pointer;
+        }
+        .toast-action-btn:hover { background: var(--accent-glow); }
+
+        @media (max-width: 900px) {
+            .card-toggle { width: 32px; height: 32px; }
+            .card-more-btn { min-height: 34px; padding: 6px 12px; }
+            .tabs-collapse-btn { width: 36px; height: 36px; }
+            .tabs-header-bar.is-collapsed { height: 40px; }
+            .ft-seg-btn { min-height: 34px; }
+            .ft-row-check, .ft-check-all { width: 20px; height: 20px; }
+        }
     </style>
 </head>
 <body>
@@ -2336,6 +2602,10 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     <span>Download</span>
                 </button>
+                <button class="lightbox-btn" id="lightboxArchiveBtn" onclick="archiveCurrentGalleryPhoto()" title="Move photo to archive">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+                    <span id="lightboxArchiveLabel">Archive</span>
+                </button>
                 <button class="lightbox-btn danger" id="lightboxDeleteBtn" onclick="deleteCurrentGalleryPhoto()" title="Delete photo from storage">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                     <span>Delete</span>
@@ -2365,7 +2635,7 @@
         <div class="lightbox-footer" onclick="event.stopPropagation()">
             <span class="lightbox-nav-hint">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="3" width="12" height="18" rx="6"></rect><line x1="12" y1="7" x2="12" y2="11"></line></svg>
-                Scroll mouse wheel, swipe, or use ← / → arrow keys to browse photos • Del to delete
+                Scroll mouse wheel, swipe, or use ← / → arrow keys to browse photos • A to archive • Del to delete
             </span>
         </div>
     </div>
@@ -2400,58 +2670,64 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     </div>
                     <input type="text" class="search-input" id="sidebarSearch" placeholder="Search clips & notes..." oninput="handleSearch(this.value)">
-                    <span class="search-shortcut">⌘F</span>
+                    <span class="search-shortcut" id="searchShortcutHint">Ctrl F</span>
                 </div>
             </div>
 
             <!-- Views Navigation -->
             <nav class="sidebar-nav">
-                <div class="nav-section-title">Views</div>
-                <div class="nav-item active" onclick="setFeedFilter('all')">
+                <div class="nav-section-title">Library</div>
+                <div class="nav-item" data-filter="all" onclick="setFeedFilter('all')" role="button" tabindex="0">
                     <div class="nav-item-left">
-                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
                         <span>All Items</span>
                     </div>
                     <span class="nav-badge" id="badgeAll">0</span>
                 </div>
-                <div class="nav-item" onclick="setFeedFilter('pinned')">
+                <div class="nav-item" data-filter="pinned" onclick="setFeedFilter('pinned')" role="button" tabindex="0">
                     <div class="nav-item-left">
-                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>
                         <span>Pinned</span>
                     </div>
                     <span class="nav-badge" id="badgePinned">0</span>
                 </div>
-                <div class="nav-item" onclick="setFeedFilter('link')">
+                <div class="nav-item" data-filter="link" onclick="setFeedFilter('link')" role="button" tabindex="0">
                     <div class="nav-item-left">
-                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></span>
-                        <span>Links & Bookmarks</span>
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></span>
+                        <span>Links &amp; Bookmarks</span>
                     </div>
                     <span class="nav-badge" id="badgeLinks">0</span>
                 </div>
-                <div class="nav-item" onclick="setFeedFilter('code')">
+                <div class="nav-item" data-filter="code" onclick="setFeedFilter('code')" role="button" tabindex="0">
                     <div class="nav-item-left">
-                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></span>
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></span>
                         <span>Code Snippets</span>
                     </div>
                     <span class="nav-badge" id="badgeCode">0</span>
                 </div>
-                <div class="nav-item" onclick="setFeedFilter('file')">
+                <div class="nav-item" data-filter="file" onclick="setFeedFilter('file')" role="button" tabindex="0">
                     <div class="nav-item-left">
-                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></span>
-                        <span>Media & Files</span>
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></span>
+                        <span>Media &amp; Files</span>
                     </div>
                     <span class="nav-badge" id="badgeFiles">0</span>
                 </div>
-                <div class="nav-item" id="navItemFileTransfer" onclick="switchAppView('file-transfer')">
+
+                <div class="nav-section-title">Storage</div>
+                <div class="nav-item" id="navItemFileTransfer" data-view="file-transfer" onclick="switchAppView('file-transfer')" role="button" tabindex="0">
                     <div class="nav-item-left">
-                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></span>
-                        <span>File Transfer & Storage</span>
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></span>
+                        <span>File Transfer &amp; Storage</span>
                     </div>
                     <span class="nav-badge" id="badgeTransferFiles">0</span>
                 </div>
-
-                <div class="nav-section-title">Tags</div>
-                <div style="display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 8px;" id="tagPillsContainer"></div>
+                <div class="nav-item" data-filter="archive" onclick="setFeedFilter('archive')" role="button" tabindex="0">
+                    <div class="nav-item-left">
+                        <span class="svg-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg></span>
+                        <span>Archive</span>
+                    </div>
+                    <span class="nav-badge" id="badgeArchive">0</span>
+                </div>
             </nav>
 
             <div class="sidebar-footer">
@@ -2511,6 +2787,12 @@
 
             <!-- Notepad Multi-Tab Bar -->
             <div class="tabs-header-bar" id="tabsHeaderBar">
+                <button class="tabs-collapse-btn" id="tabsCollapseBtn" onclick="toggleTabsBar()" title="Collapse note tabs" aria-expanded="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <button class="tabs-collapsed-label" id="tabsCollapsedLabel" onclick="toggleTabsBar()" title="Show note tabs">
+                    <span id="tabsCollapsedText">Notes</span>
+                </button>
                 <button class="new-tab-btn" onclick="createNewTab()" title="New Scratchpad Tab">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
@@ -2615,6 +2897,9 @@
                             <span class="feed-count-pill" id="feedCountPill">0</span>
                         </div>
                         <div class="feed-header-actions">
+                            <button class="icon-btn" id="collapseAllBtn" onclick="toggleAllCards()" title="Collapse all clips">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="collapseAllIcon"><polyline points="7 13 12 18 17 13"></polyline><polyline points="7 6 12 11 17 6"></polyline></svg>
+                            </button>
                             <button class="icon-btn" id="collapseFeedBtn" onclick="collapseFeedPanel()" title="Collapse Saved Clips (Alt+C)">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
                             </button>
@@ -2622,13 +2907,24 @@
                     </div>
 
                     <!-- Filter Bar -->
+                    <div class="feed-search-row">
+                        <div class="search-input-wrapper">
+                            <div class="search-icon">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            </div>
+                            <input type="text" class="search-input" id="feedSearch" placeholder="Search clips..." oninput="handleSearch(this.value)">
+                        </div>
+                    </div>
+
+                    <!-- Filter Bar -->
                     <div class="feed-filter-bar" id="filterPillsBar">
-                        <button class="tag-pill active" onclick="setFeedFilter('all')">All</button>
-                        <button class="tag-pill" onclick="setFeedFilter('pinned')">Pinned</button>
-                        <button class="tag-pill" onclick="setFeedFilter('text')">Notes</button>
-                        <button class="tag-pill" onclick="setFeedFilter('code')">Code</button>
-                        <button class="tag-pill" onclick="setFeedFilter('link')">Links</button>
-                        <button class="tag-pill" onclick="setFeedFilter('file')">Media</button>
+                        <button class="tag-pill active" data-filter="all" onclick="setFeedFilter('all')">All</button>
+                        <button class="tag-pill" data-filter="pinned" onclick="setFeedFilter('pinned')">Pinned</button>
+                        <button class="tag-pill" data-filter="text" onclick="setFeedFilter('text')">Notes</button>
+                        <button class="tag-pill" data-filter="code" onclick="setFeedFilter('code')">Code</button>
+                        <button class="tag-pill" data-filter="link" onclick="setFeedFilter('link')">Links</button>
+                        <button class="tag-pill" data-filter="file" onclick="setFeedFilter('file')">Media</button>
+                        <button class="tag-pill" data-filter="archive" onclick="setFeedFilter('archive')">Archive</button>
                     </div>
 
                     <!-- Cards Container -->
@@ -2683,7 +2979,18 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                         <input type="text" id="ftSearchInput" placeholder="Filter files by name, extension, or SHA-256..." oninput="handleFtSearch(this.value)">
                     </div>
+                    <div class="ft-segmented" role="tablist" aria-label="File scope">
+                        <button class="ft-seg-btn active" id="ftSegActive" role="tab" onclick="setFtScope('active')">Files <span class="ft-seg-count" id="ftSegActiveCount">0</span></button>
+                        <button class="ft-seg-btn" id="ftSegArchived" role="tab" onclick="setFtScope('archived')">Archived <span class="ft-seg-count" id="ftSegArchivedCount">0</span></button>
+                    </div>
                     <div class="ft-stats-group">
+                        <select class="ft-select" id="ftSortSelect" onchange="setFtSort(this.value)" title="Sort files">
+                            <option value="date_desc">Newest first</option>
+                            <option value="date_asc">Oldest first</option>
+                            <option value="name_asc">Name A-Z</option>
+                            <option value="size_desc">Largest first</option>
+                            <option value="size_asc">Smallest first</option>
+                        </select>
                         <span class="ft-stat-pill" id="ftTotalFilesCount">0 files</span>
                         <span class="ft-stat-pill" id="ftTotalSizeCount">0 B stored</span>
                         <button class="tool-btn" onclick="fetchAndRenderFtFiles()" title="Refresh file inventory">
@@ -2691,6 +2998,15 @@
                             <span>Refresh</span>
                         </button>
                     </div>
+                </div>
+
+                <!-- Bulk selection bar -->
+                <div class="ft-bulk-bar" id="ftBulkBar">
+                    <span class="ft-bulk-count" id="ftBulkCount">0 selected</span>
+                    <button class="ft-action-btn archive" id="ftBulkArchiveBtn" onclick="bulkArchiveSelected(true)">Move to archive</button>
+                    <button class="ft-action-btn restore" id="ftBulkRestoreBtn" onclick="bulkArchiveSelected(false)">Restore</button>
+                    <span class="ft-bulk-spacer"></span>
+                    <button class="ft-action-btn" onclick="clearFtSelection()">Clear selection</button>
                 </div>
 
                 <!-- Uploaded Photos & Media Gallery Ribbon -->
@@ -2721,7 +3037,7 @@
                     <table class="ft-table" id="ftFilesTable">
                         <thead>
                             <tr>
-                                <th>File Name</th>
+                                <th><label style="display:inline-flex;align-items:center;gap:10px;cursor:pointer;"><input type="checkbox" class="ft-check-all" id="ftCheckAll" onchange="toggleFtSelectAll(this.checked)" title="Select all"> <span>File Name</span></label></th>
                                 <th>Size</th>
                                 <th>SHA-256 Checksum</th>
                                 <th>Stored Date</th>
@@ -2734,8 +3050,8 @@
                     </table>
                     <div class="ft-empty-state" id="ftEmptyState" style="display: none;">
                         <div class="ft-empty-icon">📂</div>
-                        <div class="ft-empty-title">No files stored in repository</div>
-                        <div class="ft-empty-sub">Upload files above to store them losslessly with cryptographic checksums and direct URL retrieval on any host.</div>
+                        <div class="ft-empty-title" id="ftEmptyTitle">No files stored in repository</div>
+                        <div class="ft-empty-sub" id="ftEmptySub">Upload files above to store them losslessly with cryptographic checksums and direct URL retrieval on any host.</div>
                     </div>
                 </div>
             </section>
@@ -2769,6 +3085,16 @@
             x: `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`
         };
 
+        Object.assign(ICONS, {
+            archive: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>`,
+            restore: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>`,
+            chevron: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
+            edit: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`,
+            view: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>`,
+            collapseAll: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 13 12 18 17 13"></polyline><polyline points="7 6 12 11 17 6"></polyline></svg>`,
+            expandAll: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 11 12 6 7 11"></polyline><polyline points="17 18 12 13 7 18"></polyline></svg>`
+        });
+
         // ====================================================================
         // Configuration & State
         // ====================================================================
@@ -2781,6 +3107,23 @@
         let editorMode = 'edit';
         let sseSource = null;
         let saveDebounceTimer = null;
+
+        // View state (per-browser conveniences; never stored on the server)
+        let cardsMode = 'auto';          // 'auto' (collapse large clips) | 'collapsed' | 'expanded'
+        let cardOverrides = {};          // clip id -> 'open' | 'closed'
+        let tabsCollapsed = false;
+        let ftScope = 'active';          // 'active' | 'archived'
+        let ftSort = 'date_desc';
+        const ftSelected = new Set();
+
+        const Prefs = {
+            get(key, fallback) {
+                try { const v = localStorage.getItem(key); return v === null ? fallback : v; } catch (e) { return fallback; }
+            },
+            set(key, value) {
+                try { localStorage.setItem(key, value); } catch (e) {}
+            }
+        };
 
         // Parallax Engine
         let targetMouseX = window.innerWidth / 2;
@@ -2897,6 +3240,7 @@
                     allItems[idx] = updated;
                     renderFeed();
                 }
+                if (updated.filename) scheduleFtRefresh();
             });
 
             sseSource.addEventListener('files_uploaded', () => {
@@ -2945,7 +3289,7 @@
                 tabs = tabs.filter(t => t.id !== id);
                 renderTabs();
                 if (activeTabId === id && tabs.length > 0) {
-                    switchTab(tabs[0].id);
+                    loadTab(tabs[0].id);
                 }
             });
         }
@@ -2992,10 +3336,39 @@
                 tabEl.innerHTML = `
                     <span class="svg-icon">${iconSvg}</span>
                     <span>${escapeHtml(tab.name)}</span>
-                    ${canClose ? `<span class="tab-close-btn" onclick="event.stopPropagation(); closeTab('${tab.id}')">${ICONS.x}</span>` : ''}
+                    ${canClose ? `<span class="tab-close-btn" title="Delete tab">${ICONS.x}</span>` : ''}
                 `;
+                const closeEl = tabEl.querySelector('.tab-close-btn');
+                if (closeEl) {
+                    closeEl.addEventListener('click', (ev) => {
+                        ev.stopPropagation();
+                        closeTab(tab.id);
+                    });
+                }
                 container.insertBefore(tabEl, newBtn);
             });
+
+            const label = document.getElementById('tabsCollapsedText');
+            if (label) {
+                const active = tabs.find(t => t.id === activeTabId);
+                label.innerHTML = `<strong>${escapeHtml(active ? active.name : 'Notes')}</strong> <span style="color: var(--text-tertiary);">· ${tabs.length} ${tabs.length === 1 ? 'tab' : 'tabs'}</span>`;
+            }
+        }
+
+        function setTabsCollapsed(collapsed) {
+            tabsCollapsed = !!collapsed;
+            const bar = document.getElementById('tabsHeaderBar');
+            const btn = document.getElementById('tabsCollapseBtn');
+            if (bar) bar.classList.toggle('is-collapsed', tabsCollapsed);
+            if (btn) {
+                btn.setAttribute('aria-expanded', String(!tabsCollapsed));
+                btn.title = tabsCollapsed ? 'Show note tabs' : 'Collapse note tabs';
+            }
+            Prefs.set('clipboard_tabs_collapsed', tabsCollapsed ? 'true' : 'false');
+        }
+
+        function toggleTabsBar() {
+            setTabsCollapsed(!tabsCollapsed);
         }
 
         function loadTab(id) {
@@ -3020,8 +3393,13 @@
         }
 
         async function createNewTab() {
-            const name = prompt('Tab title:', 'New Scratchpad');
-            if (!name) return;
+            const name = await askPrompt({
+                title: 'New scratchpad tab',
+                message: 'Give the new tab a name.',
+                value: 'New Scratchpad',
+                confirmText: 'Create tab'
+            });
+            if (!name || !name.trim()) return;
 
             try {
                 const res = await fetch(`${API_BASE}/tabs`, {
@@ -3031,7 +3409,8 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    tabs.push(data.tab);
+                    if (!tabs.some(t => t.id === data.tab.id)) tabs.push(data.tab);
+                    setTabsCollapsed(false);
                     loadTab(data.tab.id);
                 }
             } catch (e) {
@@ -3040,8 +3419,20 @@
         }
 
         async function closeTab(id) {
+            const tab = tabs.find(t => t.id === id);
+            const chars = tab && tab.content ? tab.content.length : 0;
+            const ok = await askConfirm({
+                title: `Delete tab "${tab ? tab.name : id}"?`,
+                message: chars
+                    ? `Its ${chars.toLocaleString()} characters of text will be permanently deleted. Copy anything you want to keep first.`
+                    : 'This tab is empty.',
+                confirmText: 'Delete tab',
+                danger: true
+            });
+            if (!ok) return;
+
             try {
-                await fetch(`${API_BASE}/tabs/${id}`, { method: 'DELETE' });
+                await fetch(`${API_BASE}/tabs/${encodeURIComponent(id)}`, { method: 'DELETE' });
                 tabs = tabs.filter(t => t.id !== id);
                 if (activeTabId === id) activeTabId = tabs[0]?.id || 'scratchpad';
                 renderTabs();
@@ -3182,14 +3573,19 @@
             }
         }
 
-        function clearEditor() {
-            if (confirm('Clear current note?')) {
-                textarea.value = '';
-                updateGutter();
-                updateStats();
-                scheduleTabSave();
-                showToast('Cleared note');
-            }
+        async function clearEditor() {
+            const ok = await askConfirm({
+                title: 'Clear this note?',
+                message: 'The text in the current tab will be erased. Use "Save" first if you want to keep a copy in Saved Clips.',
+                confirmText: 'Clear note',
+                danger: true
+            });
+            if (!ok) return;
+            textarea.value = '';
+            updateGutter();
+            updateStats();
+            scheduleTabSave();
+            showToast('Cleared note');
         }
 
         // ====================================================================
@@ -3300,261 +3696,434 @@
             }
         }
 
-        function renderFeed() {
-            const container = document.getElementById('feedListContainer');
-            let filtered = [...allItems];
+        // ---- Feed helpers -------------------------------------------------
+        function isArchived(item) {
+            return !!item && item.archived === true;
+        }
 
-            if (currentFilter === 'pinned') {
-                filtered = filtered.filter(i => i.pinned);
-            } else if (currentFilter === 'link') {
-                filtered = filtered.filter(i => i.type === 'link' || (i.content && i.content.startsWith('http')));
-            } else if (currentFilter === 'code') {
-                filtered = filtered.filter(i => i.type === 'code' || i.fileType === 'code');
-            } else if (currentFilter === 'file') {
-                filtered = filtered.filter(i => i.type === 'file');
-            } else if (currentFilter === 'text') {
-                filtered = filtered.filter(i => (i.type === 'text' || i.type === 'markdown') && !i.content.startsWith('http'));
+        function isLinkItem(item) {
+            const c = item.content || '';
+            return item.type === 'link' || c.startsWith('http://') || c.startsWith('https://');
+        }
+
+        function matchesFilter(item, filter) {
+            const content = item.content || '';
+            switch (filter) {
+                case 'pinned': return !!item.pinned;
+                case 'link': return item.type === 'link' || content.startsWith('http');
+                case 'code': return item.type === 'code' || item.fileType === 'code';
+                case 'file': return item.type === 'file';
+                case 'text': return (item.type === 'text' || item.type === 'markdown') && !content.startsWith('http');
+                default: return true;
             }
+        }
+
+        function getVisibleItems() {
+            const inArchive = currentFilter === 'archive';
+            let list = allItems.filter(i => isArchived(i) === inArchive);
+            if (!inArchive) list = list.filter(i => matchesFilter(i, currentFilter));
 
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
-                filtered = filtered.filter(i => 
+                list = list.filter(i =>
                     (i.title && i.title.toLowerCase().includes(q)) ||
                     (i.content && i.content.toLowerCase().includes(q)) ||
-                    (i.name && i.name.toLowerCase().includes(q)) ||
-                    (i.tags && i.tags.some(t => t.toLowerCase().includes(q)))
+                    (i.name && i.name.toLowerCase().includes(q))
                 );
             }
 
-            document.getElementById('feedCountPill').textContent = filtered.length;
-            const segCount = document.getElementById('segClipsCount'); if (segCount) segCount.textContent = filtered.length;
-            const expandPill = document.getElementById('expandFeedCountPill'); if (expandPill) expandPill.textContent = filtered.length;
+            const stamp = (i) => new Date((inArchive ? i.archivedAt : null) || i.updatedAt || i.timestamp || 0).getTime();
+            return list.sort((a, b) => {
+                if (!inArchive && a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+                return stamp(b) - stamp(a);
+            });
+        }
 
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div style="padding: 40px 16px; text-align: center; color: var(--text-tertiary);">
-                        <div style="margin-bottom: 8px;">${ICONS.file}</div>
-                        <div style="font-size: 13px;">No items found</div>
+        function groupLabelFor(item, inArchive) {
+            if (!inArchive && item.pinned) return 'Pinned';
+            const d = new Date((inArchive ? item.archivedAt : null) || item.updatedAt || item.timestamp || 0);
+            const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+            const dayMs = 86400000;
+            if (d >= startOfToday) return inArchive ? 'Archived today' : 'Today';
+            if (d >= startOfToday - dayMs) return inArchive ? 'Archived yesterday' : 'Yesterday';
+            if (d >= startOfToday - 6 * dayMs) return inArchive ? 'Archived this week' : 'Last 7 days';
+            if (d >= startOfToday - 29 * dayMs) return inArchive ? 'Archived this month' : 'Last 30 days';
+            return inArchive ? 'Archived earlier' : 'Older';
+        }
+
+        function measureItem(item) {
+            const content = item.content || '';
+            if (item.type === 'file' || item.filename) return { large: false, label: '' };
+            if (isLinkItem(item)) {
+                const n = content.split('\n').map(l => l.trim()).filter(Boolean).length;
+                return { large: n > 2, label: `${n} ${n === 1 ? 'link' : 'links'}` };
+            }
+            const lines = content.split('\n').length;
+            const chars = content.length;
+            return {
+                large: lines > 6 || chars > 280,
+                label: `${lines} ${lines === 1 ? 'line' : 'lines'} · ${chars.toLocaleString()} chars`
+            };
+        }
+
+        function isCardCollapsed(item, large) {
+            const override = cardOverrides[String(item.id)];
+            if (override) return override === 'closed';
+            if (cardsMode === 'collapsed') return true;
+            if (cardsMode === 'expanded') return false;
+            return large;
+        }
+
+        function cardIconBtn(action, title, icon, extraClass) {
+            return `<button class="mini-btn ${extraClass || ''}" data-action="${action}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">${icon}</button>`;
+        }
+
+        function mediaPill(action, label, icon, cls) {
+            return `<button class="media-action-pill-btn ${cls || ''}" data-action="${action}" title="${escapeHtml(label)}">${icon}<span>${escapeHtml(label)}</span></button>`;
+        }
+
+        function renderCardHtml(item) {
+            const id = String(item.id);
+            const archived = isArchived(item);
+            const isFile = item.type === 'file' || !!item.filename;
+            const content = item.content || '';
+            const when = archived && item.archivedAt ? item.archivedAt : (item.updatedAt || item.timestamp);
+            const timeAgo = (archived && item.archivedAt ? 'Archived ' : '') + getTimeAgo(new Date(when));
+            const isLink = isLinkItem(item);
+            const isCode = item.type === 'code' || item.fileType === 'code';
+            const fileType = item.fileType || (isFile ? 'file' : item.type);
+            const meta = measureItem(item);
+            const collapsed = isCardCollapsed(item, meta.large);
+
+            let typeIcon = ICONS.doc;
+            let typeLabel = 'Note';
+            if (isLink) { typeIcon = ICONS.link; typeLabel = 'Link'; }
+            else if (isCode) { typeIcon = ICONS.code; typeLabel = 'Code'; }
+            else if (fileType === 'image') { typeIcon = ICONS.image; typeLabel = 'Image'; }
+            else if (fileType === 'video') { typeIcon = ICONS.video; typeLabel = 'Video'; }
+            else if (fileType === 'audio') { typeIcon = ICONS.audio; typeLabel = 'Audio'; }
+            else if (fileType === 'markdown') { typeIcon = ICONS.doc; typeLabel = 'Markdown'; }
+            else if (fileType === 'pdf') { typeIcon = ICONS.file; typeLabel = 'Document'; }
+
+            const hasDistinctTitle = item.title && item.title !== content && !content.startsWith(item.title);
+
+            let bodyHtml = '';
+            let textLike = false;
+
+            if (isLink) {
+                textLike = true;
+                const rawLines = content.split('\n').map(l => l.trim()).filter(Boolean);
+                bodyHtml = `
+                    <div class="rich-link-card">
+                        ${rawLines.map(url => {
+                            let domain = url;
+                            try { domain = new URL(url).hostname; } catch (e) {}
+                            const targetUrl = url.startsWith('http') ? url : `https://${url}`;
+                            return `
+                                <div class="link-item-row">
+                                    <div class="link-domain-badge">
+                                        <span class="svg-icon">${ICONS.link}</span>
+                                        <span>${escapeHtml(domain)}</span>
+                                    </div>
+                                    <div class="link-url-text">${escapeHtml(url)}</div>
+                                    <div class="link-footer-actions">
+                                        <button class="mini-btn" data-action="copy-url" data-url="${escapeHtml(url)}">Copy URL</button>
+                                        <a href="${escapeHtml(targetUrl)}" target="_blank" rel="noopener" class="link-action-link">
+                                            <span>Open</span>
+                                            <span class="svg-icon">${ICONS.external}</span>
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 `;
-                return;
-            }
+            } else if (isCode) {
+                textLike = true;
+                bodyHtml = `<div class="code-snippet-box"><code>${escapeHtml(content)}</code></div>`;
+            } else if (isFile && item.filename) {
+                const fileUrl = `${API_BASE}/file/${encodeURIComponent(item.filename)}`;
+                const sizeStr = formatFileSize(item.size || 0);
+                const downloadPill = mediaPill('download', 'Download', ICONS.download);
+                const archivePill = archived
+                    ? mediaPill('restore', 'Restore', ICONS.restore)
+                    : mediaPill('archive', 'Archive', ICONS.archive, 'archive');
+                const deletePill = mediaPill('delete', 'Delete', ICONS.trash, 'danger');
+                let preview = '';
+                let viewPill = '';
 
-            container.innerHTML = filtered.map(item => {
-                const isPinned = item.pinned;
-                const isFile = item.type === 'file' || !!item.filename;
-                const content = item.content || '';
-                const timeAgo = getTimeAgo(new Date(item.updatedAt || item.timestamp));
-                const isLink = item.type === 'link' || content.startsWith('http://') || content.startsWith('https://');
-                const isCode = item.type === 'code' || item.fileType === 'code';
-                const fileType = item.fileType || (isFile ? 'file' : item.type);
-
-                // Type Icon & Label
-                let typeIcon = ICONS.doc;
-                let typeLabel = 'Note';
-                if (isLink) { typeIcon = ICONS.link; typeLabel = 'Link'; }
-                else if (isCode) { typeIcon = ICONS.code; typeLabel = 'Code'; }
-                else if (fileType === 'image') { typeIcon = ICONS.image; typeLabel = 'Image'; }
-                else if (fileType === 'video') { typeIcon = ICONS.video; typeLabel = 'Video'; }
-                else if (fileType === 'audio') { typeIcon = ICONS.audio; typeLabel = 'Audio'; }
-                else if (fileType === 'markdown') { typeIcon = ICONS.doc; typeLabel = 'Markdown'; }
-                else if (fileType === 'pdf') { typeIcon = ICONS.file; typeLabel = 'Document'; }
-
-                // Determine if title is redundant
-                const hasDistinctTitle = item.title && item.title !== content && !content.startsWith(item.title);
-
-                // Tags HTML
-                const tagsHtml = (item.tags && item.tags.length) ? `
-                    <div class="card-tags-row">
-                        ${item.tags.map(t => `<span class="mini-tag">#${escapeHtml(t)}</span>`).join('')}
-                    </div>
-                ` : '';
-
-                // Body formatting
-                let bodyHtml = '';
-                if (isLink) {
-                    const rawLines = content.split('\n').map(l => l.trim()).filter(Boolean);
-                    bodyHtml = `
-                        <div class="rich-link-card" onclick="event.stopPropagation()">
-                            ${rawLines.map(url => {
-                                let domain = url;
-                                try { domain = new URL(url).hostname; } catch(e) {}
-                                const targetUrl = url.startsWith('http') ? url : `https://${url}`;
-                                return `
-                                    <div class="link-item-row">
-                                        <div class="link-domain-badge">
-                                            <span class="svg-icon">${ICONS.link}</span>
-                                            <span>${escapeHtml(domain)}</span>
-                                        </div>
-                                        <div class="link-url-text">${escapeHtml(url)}</div>
-                                        <div class="link-footer-actions">
-                                            <button class="mini-btn" onclick="copyText('${escapeJsString(url)}')">Copy URL</button>
-                                            <a href="${escapeHtml(targetUrl)}" target="_blank" rel="noopener" class="link-action-link">
-                                                <span>Open</span>
-                                                <span class="svg-icon">${ICONS.external}</span>
-                                            </a>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    `;
-                } else if (isCode) {
-                    bodyHtml = `
-                        <div class="code-snippet-box" onclick="event.stopPropagation()">
-                            <code>${escapeHtml(content)}</code>
-                        </div>
-                    `;
-                } else if (isFile && item.filename) {
-                    const fileUrl = `${API_BASE}/file/${encodeURIComponent(item.filename)}`;
-                    const sizeStr = formatFileSize(item.size || 0);
-
-                    const safeItemName = escapeJsString(item.name || item.title || 'file');
-                    if (fileType === 'image') {
-                        bodyHtml = `
-                            <div class="media-preview-container">
-                                <img src="${fileUrl}" class="media-image-thumb" onclick="openLightbox('${item.id}')" alt="${escapeHtml(item.title || '')}" title="Click to view & scroll photos">
-                            </div>
-                            <div class="card-media-footer-actions" onclick="event.stopPropagation()">
-                                <span class="file-meta-pill">${sizeStr}</span>
-                                <div class="card-media-actions-group">
-                                    <button class="media-action-pill-btn primary" onclick="openLightbox('${item.id}')" title="Open photo gallery viewer">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-                                        <span>View</span>
-                                    </button>
-                                    <button class="media-action-pill-btn" onclick="downloadClipFile('${item.filename}', '${safeItemName}')" title="Download photo">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                        <span>Download</span>
-                                    </button>
-                                    <button class="media-action-pill-btn danger" onclick="deleteClip('${item.id}')" title="Delete photo from homelab">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                        <span>Delete</span>
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                    } else if (fileType === 'audio') {
-                        bodyHtml = `
-                            <div class="media-preview-container" style="padding: 6px;">
-                                <audio controls class="media-audio-player" preload="metadata">
-                                    <source src="${fileUrl}" type="${item.mimetype || 'audio/mpeg'}">
-                                </audio>
-                            </div>
-                            <div class="card-media-footer-actions" onclick="event.stopPropagation()">
-                                <span class="file-meta-pill">${sizeStr}</span>
-                                <div class="card-media-actions-group">
-                                    <button class="media-action-pill-btn" onclick="downloadClipFile('${item.filename}', '${safeItemName}')" title="Download audio">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                        <span>Download</span>
-                                    </button>
-                                    <button class="media-action-pill-btn danger" onclick="deleteClip('${item.id}')" title="Delete audio">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                        <span>Delete</span>
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                    } else if (fileType === 'video') {
-                        bodyHtml = `
-                            <div class="media-preview-container">
-                                <video controls class="media-video-player" preload="metadata">
-                                    <source src="${fileUrl}" type="${item.mimetype || 'video/mp4'}">
-                                </video>
-                            </div>
-                            <div class="card-media-footer-actions" onclick="event.stopPropagation()">
-                                <span class="file-meta-pill">${sizeStr}</span>
-                                <div class="card-media-actions-group">
-                                    <button class="media-action-pill-btn" onclick="downloadClipFile('${item.filename}', '${safeItemName}')" title="Download video">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                        <span>Download</span>
-                                    </button>
-                                    <button class="media-action-pill-btn danger" onclick="deleteClip('${item.id}')" title="Delete video">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                        <span>Delete</span>
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        bodyHtml = `
-                            <div class="card-media-footer-actions" onclick="event.stopPropagation()">
-                                <span class="file-meta-pill">${sizeStr}</span>
-                                <div class="card-media-actions-group">
-                                    <button class="media-action-pill-btn" onclick="downloadClipFile('${item.filename}', '${safeItemName}')" title="Download file">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                        <span>Download</span>
-                                    </button>
-                                    <button class="media-action-pill-btn danger" onclick="deleteClip('${item.id}')" title="Delete file">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                        <span>Delete</span>
-                                    </button>
-                                </div>
-                            </div>
-                        `;
+                if (fileType === 'image') {
+                    viewPill = mediaPill('view', 'View', ICONS.view, 'primary');
+                    if (!collapsed) {
+                        preview = `<div class="media-preview-container"><img src="${fileUrl}" class="media-image-thumb" data-action="view" loading="lazy" alt="${escapeHtml(item.title || '')}" title="Click to view and browse photos"></div>`;
                     }
-
-                } else {
-                    bodyHtml = `<div class="card-snippet">${escapeHtml(content)}</div>`;
+                } else if (fileType === 'audio' && !collapsed) {
+                    preview = `<div class="media-preview-container" style="padding: 6px;"><audio controls class="media-audio-player" preload="metadata"><source src="${fileUrl}" type="${escapeHtml(item.mimetype || 'audio/mpeg')}"></audio></div>`;
+                } else if (fileType === 'video' && !collapsed) {
+                    preview = `<div class="media-preview-container"><video controls class="media-video-player" preload="metadata"><source src="${fileUrl}" type="${escapeHtml(item.mimetype || 'video/mp4')}"></video></div>`;
                 }
 
-                return `
-                    <div class="clip-card ${isPinned ? 'pinned' : ''}" onclick="selectClipItem('${item.id}')">
-                        <div class="card-meta-row">
+                bodyHtml = `
+                    ${preview}
+                    <div class="card-media-footer-actions">
+                        <span class="file-meta-pill">${sizeStr}</span>
+                        <div class="card-media-actions-group">
+                            ${viewPill}${downloadPill}${archivePill}${deletePill}
+                        </div>
+                    </div>
+                `;
+            } else {
+                textLike = true;
+                bodyHtml = `<div class="card-snippet">${escapeHtml(content)}</div>`;
+            }
+
+            const showBodyClamp = textLike && collapsed;
+            const body = textLike
+                ? `<div class="card-body ${showBodyClamp ? 'is-collapsed' : ''}">${bodyHtml}</div>`
+                : bodyHtml;
+            const moreBtn = textLike
+                ? `<button class="card-more-btn" data-action="more"><span>${collapsed ? 'Show more' : 'Show less'}</span><span class="card-more-meta">${escapeHtml(meta.label)}</span></button>`
+                : '';
+
+            const actions = [
+                cardIconBtn('pin', item.pinned ? 'Unpin' : 'Pin to top', item.pinned ? ICONS.starFilled : ICONS.star, item.pinned ? 'pinned' : ''),
+                cardIconBtn('copy', isFile ? 'Copy file name' : 'Copy content', ICONS.copy),
+                (!isFile && content) ? cardIconBtn('open', 'Open in a new editor tab', ICONS.edit) : '',
+                isFile ? cardIconBtn('download', 'Download', ICONS.download) : '',
+                archived
+                    ? cardIconBtn('restore', 'Restore from archive', ICONS.restore, 'restore')
+                    : cardIconBtn('archive', 'Move to archive', ICONS.archive),
+                cardIconBtn('delete', archived ? 'Delete permanently' : 'Delete', ICONS.trash)
+            ].join('');
+
+            return `
+                <div class="clip-card ${item.pinned ? 'pinned' : ''} ${collapsed ? 'is-collapsed' : ''}" data-id="${escapeHtml(id)}" data-large="${meta.large ? 1 : 0}">
+                    <div class="card-meta-row">
+                        <div class="card-meta-left">
+                            <button class="card-toggle" data-action="toggle" aria-expanded="${!collapsed}" title="${collapsed ? 'Expand' : 'Collapse'}" aria-label="${collapsed ? 'Expand clip' : 'Collapse clip'}">${ICONS.chevron}</button>
                             <div class="card-type-tag">
                                 <span class="svg-icon">${typeIcon}</span>
                                 <span>${typeLabel}</span>
                                 <span style="opacity: 0.4;">•</span>
                                 <span style="font-weight: 400; text-transform: none; color: var(--text-tertiary);">${timeAgo}</span>
                             </div>
-                            <div class="card-actions-hover" onclick="event.stopPropagation()">
-                                <button class="mini-btn ${isPinned ? 'pinned' : ''}" onclick="togglePin('${item.id}')" title="Pin / Unpin">
-                                    ${isPinned ? ICONS.starFilled : ICONS.star}
-                                </button>
-                                <button class="mini-btn" onclick="copyClipContent('${item.id}')" title="Copy Content">
-                                    ${ICONS.copy}
-                                </button>
-                                ${isFile ? `
-                                    <button class="mini-btn" onclick="downloadClipFile('${item.filename}', '${escapeJsString(item.name || item.title)}')" title="Download">
-                                        ${ICONS.download}
-                                    </button>
-                                ` : ''}
-                                <button class="mini-btn" onclick="deleteClip('${item.id}')" title="Delete">
-                                    ${ICONS.trash}
-                                </button>
-                            </div>
                         </div>
-
-                        ${(hasDistinctTitle || isFile) ? `<div class="card-title">${escapeHtml(item.title || item.name || 'Untitled')}</div>` : ''}
-                        ${bodyHtml}
-                        ${tagsHtml}
+                        <div class="card-actions-hover">${actions}</div>
                     </div>
-                `;
-            }).join('');
+                    ${(hasDistinctTitle || isFile) ? `<div class="card-title">${escapeHtml(item.title || item.name || 'Untitled')}</div>` : ''}
+                    ${body}
+                    ${moreBtn}
+                </div>
+            `;
+        }
+
+        // Clamp-overflow is measured, not guessed: only show "Show more" when text is really cut off.
+        function measureCards() {
+            document.querySelectorAll('#feedListContainer .clip-card.is-collapsed').forEach(card => {
+                const body = card.querySelector('.card-body');
+                if (!body || body.clientHeight === 0) return; // hidden panel; ResizeObserver re-measures when shown
+                const overflowing = body.scrollHeight > body.clientHeight + 2;
+                card.classList.toggle('overflowing', overflowing);
+                body.classList.toggle('fits', !overflowing);
+            });
+        }
+
+        function renderFeed() {
+            const container = document.getElementById('feedListContainer');
+            const inArchive = currentFilter === 'archive';
+            const filtered = getVisibleItems();
+
+            document.getElementById('feedCountPill').textContent = filtered.length;
+            const segCount = document.getElementById('segClipsCount'); if (segCount) segCount.textContent = filtered.length;
+            const expandPill = document.getElementById('expandFeedCountPill'); if (expandPill) expandPill.textContent = filtered.length;
+            updateBadgeCounts();
+            updateCollapseAllButton();
+
+            const banner = inArchive ? `
+                <div class="feed-archive-banner">
+                    <span class="svg-icon">${ICONS.archive}</span>
+                    <span>Archived items are hidden from your other views. Nothing here is deleted; restore anything any time.</span>
+                </div>` : '';
+
+            if (filtered.length === 0) {
+                const searching = !!searchQuery;
+                container.innerHTML = banner + `
+                    <div class="feed-empty">
+                        <div>${inArchive ? ICONS.archive : ICONS.file}</div>
+                        <div class="feed-empty-title">${searching ? 'No matches' : (inArchive ? 'Archive is empty' : 'No items found')}</div>
+                        <div class="feed-empty-sub">${searching ? 'Try a different search.' : (inArchive ? 'Use the archive button on any clip or file to tuck it away here.' : 'Save a note or upload a file to get started.')}</div>
+                    </div>`;
+                return;
+            }
+
+            let lastGroup = null;
+            const parts = [banner];
+            for (const item of filtered) {
+                const group = groupLabelFor(item, inArchive);
+                if (group !== lastGroup) {
+                    parts.push(`<div class="feed-group-label">${escapeHtml(group)}</div>`);
+                    lastGroup = group;
+                }
+                parts.push(renderCardHtml(item));
+            }
+            container.innerHTML = parts.join('');
+            measureCards();
+        }
+
+        // ---- Collapse / expand clips --------------------------------------
+        function persistCardPrefs() {
+            Prefs.set('clipboard_cards_mode', cardsMode);
+            Prefs.set('clipboard_card_overrides', JSON.stringify(cardOverrides));
+        }
+
+        function updateCollapseAllButton() {
+            const btn = document.getElementById('collapseAllBtn');
+            if (!btn) return;
+            const collapsedNow = cardsMode === 'collapsed';
+            btn.innerHTML = collapsedNow ? ICONS.expandAll : ICONS.collapseAll;
+            btn.title = collapsedNow ? 'Expand all clips' : 'Collapse all clips';
+            btn.setAttribute('aria-label', btn.title);
+        }
+
+        function toggleAllCards() {
+            cardsMode = cardsMode === 'collapsed' ? 'expanded' : 'collapsed';
+            cardOverrides = {};
+            persistCardPrefs();
+            renderFeed();
+        }
+
+        function toggleCard(id) {
+            const item = allItems.find(i => String(i.id) === String(id));
+            if (!item) return;
+            const nowCollapsed = isCardCollapsed(item, measureItem(item).large);
+            cardOverrides[String(id)] = nowCollapsed ? 'open' : 'closed';
+            const liveIds = new Set(allItems.map(i => String(i.id)));
+            Object.keys(cardOverrides).forEach(k => { if (!liveIds.has(k)) delete cardOverrides[k]; });
+            persistCardPrefs();
+
+            // Re-render only this card so playing audio/video elsewhere is not interrupted.
+            const el = document.querySelector(`#feedListContainer .clip-card[data-id="${CSS.escape(String(id))}"]`);
+            if (!el) { renderFeed(); return; }
+            const tpl = document.createElement('template');
+            tpl.innerHTML = renderCardHtml(item).trim();
+            el.replaceWith(tpl.content.firstElementChild);
+            measureCards();
+        }
+
+        async function onFeedClick(e) {
+            const card = e.target.closest('.clip-card');
+            if (!card) return;
+            const id = card.dataset.id;
+            const actionEl = e.target.closest('[data-action]');
+
+            if (!actionEl) {
+                // Clicking the header row (but not a link or text) toggles the card
+                if (e.target.closest('.card-meta-row')) toggleCard(id);
+                return;
+            }
+
+            const item = allItems.find(i => String(i.id) === String(id));
+            switch (actionEl.dataset.action) {
+                case 'toggle':
+                case 'more': toggleCard(id); break;
+                case 'pin': togglePin(id); break;
+                case 'copy': copyClipContent(id); break;
+                case 'copy-url': copyText(actionEl.dataset.url); break;
+                case 'open': openClipInEditor(id); break;
+                case 'download': if (item && item.filename) downloadClipFile(item.filename, item.name || item.title); break;
+                case 'archive': archiveItems([id], true); break;
+                case 'restore': archiveItems([id], false); break;
+                case 'delete': deleteClip(id); break;
+                case 'view': openLightbox(id); break;
+            }
+        }
+
+        // ---- Open a clip in the editor without overwriting anything -------
+        async function openClipInEditor(id) {
+            const item = allItems.find(i => String(i.id) === String(id));
+            if (!item || !item.content) return;
+            const name = (item.title || item.content.trim().split('\n')[0] || 'Clip').slice(0, 40);
+            try {
+                const res = await fetch(`${API_BASE}/tabs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        content: item.content,
+                        mode: item.type === 'code' ? 'code' : (item.type === 'markdown' ? 'markdown' : 'text')
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (!tabs.some(t => t.id === data.tab.id)) tabs.push(data.tab);
+                    setEditorMode('edit');
+                    loadTab(data.tab.id);
+                    showToast('Opened in a new tab');
+                }
+            } catch (e) {
+                showToast('Could not open clip', 'error');
+            }
+        }
+
+        // ---- Archive / restore --------------------------------------------
+        async function archiveItems(ids, archived) {
+            ids = ids.map(String);
+            try {
+                const res = await fetch(`${API_BASE}/items/archive`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids, archived })
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                (data.items || []).forEach(updated => {
+                    const idx = allItems.findIndex(i => String(i.id) === String(updated.id));
+                    if (idx !== -1) allItems[idx] = updated;
+                });
+                renderFeed();
+                await fetchAndRenderFtFiles();
+
+                const changed = (data.changed || []).length;
+                if (changed) {
+                    const first = allItems.find(i => String(i.id) === String(data.changed[0]));
+                    const name = first ? (first.name || first.title || 'item') : 'item';
+                    const what = changed === 1 ? `"${name.length > 32 ? name.slice(0, 32) + '...' : name}"` : `${changed} items`;
+                    showToast(archived ? `Moved ${what} to archive` : `Restored ${what}`, 'success', {
+                        label: 'Undo',
+                        onClick: () => archiveItems(data.changed, !archived)
+                    });
+                }
+                return true;
+            } catch (e) {
+                showToast(`Could not ${archived ? 'archive' : 'restore'}: ${e.message}`, 'error');
+                return false;
+            }
         }
 
         function updateBadgeCounts() {
-            document.getElementById('badgeAll').textContent = allItems.length;
-            document.getElementById('badgePinned').textContent = allItems.filter(i => i.pinned).length;
-            document.getElementById('badgeLinks').textContent = allItems.filter(i => i.type === 'link' || (i.content && i.content.startsWith('http'))).length;
-            document.getElementById('badgeCode').textContent = allItems.filter(i => i.type === 'code' || i.fileType === 'code').length;
-            document.getElementById('badgeFiles').textContent = allItems.filter(i => i.type === 'file').length;
-            const badgeTransfer = document.getElementById('badgeTransferFiles');
-            if (badgeTransfer) badgeTransfer.textContent = (typeof ftStoredFiles !== 'undefined' && ftStoredFiles.length) ? ftStoredFiles.length : allItems.filter(i => i.type === 'file' || !!i.filename).length;
+            const live = allItems.filter(i => !isArchived(i));
+            const setText = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+            setText('badgeAll', live.length);
+            setText('badgePinned', live.filter(i => i.pinned).length);
+            setText('badgeLinks', live.filter(i => matchesFilter(i, 'link')).length);
+            setText('badgeCode', live.filter(i => matchesFilter(i, 'code')).length);
+            setText('badgeFiles', live.filter(i => i.type === 'file').length);
+            setText('badgeArchive', allItems.length - live.length);
+            setText('badgeTransferFiles', ftStoredFiles.length
+                ? ftStoredFiles.filter(f => f.archived !== true).length
+                : live.filter(i => i.type === 'file' || !!i.filename).length);
+        }
 
-            const tagCounts = {};
-            allItems.forEach(i => {
-                if (Array.isArray(i.tags)) {
-                    i.tags.forEach(t => tagCounts[t] = (tagCounts[t] || 0) + 1);
-                }
+        function syncFilterUi() {
+            document.querySelectorAll('#filterPillsBar [data-filter]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === currentFilter);
             });
-
-            const tagsContainer = document.getElementById('tagPillsContainer');
-            tagsContainer.innerHTML = Object.entries(tagCounts).slice(0, 8).map(([tag, count]) => `
-                <button class="tag-pill" onclick="handleTagClick('${tag}')">
-                    <span>#${escapeHtml(tag)}</span>
-                    <span style="opacity: 0.6; font-size: 10px;">${count}</span>
-                </button>
-            `).join('');
+            document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
+                const active = currentAppView === 'file-transfer'
+                    ? item.dataset.view === 'file-transfer'
+                    : item.dataset.filter === currentFilter;
+                item.classList.toggle('active', active);
+            });
         }
 
         function setFeedFilter(filter) {
@@ -3562,53 +4131,26 @@
                 switchAppView('workspace');
             }
             currentFilter = filter;
-            document.querySelectorAll('.feed-filter-bar .tag-pill').forEach(btn => {
-                btn.classList.toggle('active', btn.getAttribute('onclick')?.includes(filter));
-            });
-            document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
-                item.classList.toggle('active', item.getAttribute('onclick')?.includes(filter));
-            });
+            syncFilterUi();
             renderFeed();
             if (window.innerWidth <= 900) {
                 closeSidebarDrawer();
                 switchMobileView('clips');
-            }
-        }
-
-        function handleTagClick(tag) {
-            searchQuery = tag;
-            document.getElementById('sidebarSearch').value = tag;
-            renderFeed();
-            if (window.innerWidth <= 900) {
-                closeSidebarDrawer();
-                switchMobileView('clips');
+            } else if (isFeedPanelCollapsed()) {
+                expandFeedPanel();
             }
         }
 
         function handleSearch(val) {
             searchQuery = val.trim();
-            renderFeed();
-        }
-
-        function selectClipItem(id) {
-            const item = allItems.find(i => String(i.id) === String(id));
-            if (!item) return;
-
-            if (item.content) {
-                textarea.value = item.content;
-                document.getElementById('docTitle').value = item.title || 'Loaded Clip';
-                updateGutter();
-                updateStats();
-                setEditorMode('edit');
-                showToast('Loaded into editor');
-                if (window.innerWidth <= 900) switchMobileView('editor');
-            } else if (item.filename) {
-                if (item.fileType === 'image') {
-                    openLightbox(`${API_BASE}/file/${encodeURIComponent(item.filename)}`);
-                } else {
-                    downloadClipFile(item.filename, item.name);
-                }
+            ['sidebarSearch', 'feedSearch'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value !== val) el.value = val;
+            });
+            if (searchQuery && currentAppView === 'workspace' && window.innerWidth > 900 && isFeedPanelCollapsed()) {
+                expandFeedPanel();
             }
+            renderFeed();
         }
 
         async function togglePin(id) {
@@ -3654,13 +4196,24 @@
         }
 
         async function deleteClip(id) {
-            if (!confirm('Delete this clip?')) return;
+            const item = allItems.find(i => String(i.id) === String(id));
+            const isFile = item && (item.type === 'file' || !!item.filename);
+            const name = item ? (item.name || item.title || 'this clip') : 'this clip';
+            const ok = await askConfirm({
+                title: isFile ? `Delete "${name}"?` : 'Delete this clip?',
+                message: isFile
+                    ? 'This permanently deletes the file from the Pi. Use Archive instead if you only want it out of the way.'
+                    : 'This permanently deletes the clip. Use Archive instead if you only want it out of the way.',
+                confirmText: 'Delete',
+                danger: true
+            });
+            if (!ok) return;
             try {
-                const res = await fetch(`${API_BASE}/items/${id}`, { method: 'DELETE' });
+                const res = await fetch(`${API_BASE}/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
                 if (res.ok) {
                     allItems = allItems.filter(i => String(i.id) !== String(id));
                     renderFeed();
-                    updateBadgeCounts();
+                    fetchAndRenderFtFiles();
                     showToast('Clip deleted');
                 }
             } catch (e) {
@@ -3727,18 +4280,13 @@
             const tabsHeaderBar = document.getElementById('tabsHeaderBar');
             const ftView = document.getElementById('fileTransferView');
             const breadcrumbCurrent = document.getElementById('breadcrumbCurrent');
-            const navFt = document.getElementById('navItemFileTransfer');
             const expandFeedBtn = document.getElementById('expandFeedBtn');
-
-            // Deactivate all sidebar nav items
-            document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => item.classList.remove('active'));
 
             if (view === 'file-transfer') {
                 if (workspaceSplit) workspaceSplit.style.display = 'none';
                 if (tabsHeaderBar) tabsHeaderBar.style.display = 'none';
                 if (ftView) ftView.style.display = 'flex';
                 if (breadcrumbCurrent) breadcrumbCurrent.textContent = 'File Transfer & Storage';
-                if (navFt) navFt.classList.add('active');
                 if (expandFeedBtn) expandFeedBtn.style.display = 'none';
                 fetchAndRenderFtFiles();
             } else {
@@ -3749,17 +4297,62 @@
                 if (expandFeedBtn) {
                     expandFeedBtn.style.display = (window.innerWidth > 900 && isFeedPanelCollapsed()) ? 'inline-flex' : 'none';
                 }
-                // Re-activate current feed filter nav item
-                document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
-                    if (item.getAttribute('onclick')?.includes(currentFilter)) {
-                        item.classList.add('active');
-                    }
-                });
             }
+            syncFilterUi();
 
             if (window.innerWidth <= 900) {
                 closeSidebarDrawer();
             }
+        }
+
+        let ftRefreshTimer = null;
+        function scheduleFtRefresh() {
+            clearTimeout(ftRefreshTimer);
+            ftRefreshTimer = setTimeout(fetchAndRenderFtFiles, 200);
+        }
+
+        function getFtFile(id) {
+            return ftStoredFiles.find(f => String(f.id) === String(id));
+        }
+
+        function getFtScopedFiles() {
+            return ftStoredFiles.filter(f => (f.archived === true) === (ftScope === 'archived'));
+        }
+
+        function sortFtFiles(list) {
+            const arr = [...list];
+            const time = (f) => new Date(f.createdAt || 0).getTime();
+            switch (ftSort) {
+                case 'date_asc': arr.sort((a, b) => time(a) - time(b)); break;
+                case 'name_asc': arr.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' })); break;
+                case 'size_desc': arr.sort((a, b) => (b.size || 0) - (a.size || 0)); break;
+                case 'size_asc': arr.sort((a, b) => (a.size || 0) - (b.size || 0)); break;
+                default: arr.sort((a, b) => time(b) - time(a));
+            }
+            return arr;
+        }
+
+        function getFtVisibleFiles() {
+            let files = getFtScopedFiles();
+            if (ftSearchQuery) {
+                const q = ftSearchQuery.toLowerCase();
+                files = files.filter(f =>
+                    (f.name && f.name.toLowerCase().includes(q)) ||
+                    (f.mimetype && f.mimetype.toLowerCase().includes(q)) ||
+                    (f.sha256 && f.sha256.toLowerCase().includes(q))
+                );
+            }
+            return sortFtFiles(files);
+        }
+
+        function renderFtAll() {
+            // Drop selections for files that no longer exist in this scope
+            const valid = new Set(getFtScopedFiles().map(f => String(f.id)));
+            [...ftSelected].forEach(id => { if (!valid.has(id)) ftSelected.delete(id); });
+            renderFtMediaGallery();
+            renderFtTable();
+            updateFtBadgesAndStats();
+            updateBadgeCounts();
         }
 
         async function fetchAndRenderFtFiles() {
@@ -3767,12 +4360,60 @@
                 const res = await fetch(`${API_BASE}/files`);
                 if (res.ok) {
                     ftStoredFiles = await res.json();
-                    renderFtMediaGallery();
-                    renderFtTable();
-                    updateFtBadgesAndStats();
+                    renderFtAll();
                 }
             } catch (err) {
                 console.error('Failed to fetch stored files:', err);
+            }
+        }
+
+        function setFtScope(scope) {
+            ftScope = scope === 'archived' ? 'archived' : 'active';
+            ftSelected.clear();
+            document.getElementById('ftSegActive')?.classList.toggle('active', ftScope === 'active');
+            document.getElementById('ftSegArchived')?.classList.toggle('active', ftScope === 'archived');
+            renderFtAll();
+        }
+
+        function setFtSort(value) {
+            ftSort = value;
+            renderFtAll();
+        }
+
+        function toggleFtSelectAll(checked) {
+            getFtVisibleFiles().forEach(f => {
+                if (checked) ftSelected.add(String(f.id)); else ftSelected.delete(String(f.id));
+            });
+            renderFtTable();
+        }
+
+        function clearFtSelection() {
+            ftSelected.clear();
+            renderFtTable();
+        }
+
+        async function bulkArchiveSelected(archived) {
+            const ids = [...ftSelected];
+            if (!ids.length) return;
+            ftSelected.clear();
+            await archiveItems(ids, archived);
+        }
+
+        function updateFtBulkBar() {
+            const bar = document.getElementById('ftBulkBar');
+            if (!bar) return;
+            const n = ftSelected.size;
+            bar.classList.toggle('visible', n > 0);
+            document.getElementById('ftBulkCount').textContent = `${n} selected`;
+            document.getElementById('ftBulkArchiveBtn').style.display = ftScope === 'archived' ? 'none' : '';
+            document.getElementById('ftBulkRestoreBtn').style.display = ftScope === 'archived' ? '' : 'none';
+
+            const all = document.getElementById('ftCheckAll');
+            if (all) {
+                const visible = getFtVisibleFiles();
+                const selectedVisible = visible.filter(f => ftSelected.has(String(f.id))).length;
+                all.checked = visible.length > 0 && selectedVisible === visible.length;
+                all.indeterminate = selectedVisible > 0 && selectedVisible < visible.length;
             }
         }
 
@@ -3782,12 +4423,10 @@
             const countBadge = document.getElementById('ftMediaCountBadge');
             if (!sec || !container) return;
 
-            const photos = ftStoredFiles.filter(f => {
-                const fn = f.filename || '';
-                const name = f.name || '';
-                const ext = (fn.split('.').pop() || '').toLowerCase();
-                const extName = (name.split('.').pop() || '').toLowerCase();
-                const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'];
+            const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'];
+            const photos = sortFtFiles(getFtScopedFiles()).filter(f => {
+                const ext = ((f.filename || '').split('.').pop() || '').toLowerCase();
+                const extName = ((f.name || '').split('.').pop() || '').toLowerCase();
                 return f.fileType === 'image' ||
                        (f.mimetype && f.mimetype.startsWith('image/')) ||
                        imageExts.includes(ext) ||
@@ -3802,29 +4441,23 @@
             sec.style.display = 'flex';
             if (countBadge) countBadge.textContent = `${photos.length} ${photos.length === 1 ? 'photo' : 'photos'}`;
 
+            const archivedScope = ftScope === 'archived';
             container.innerHTML = photos.map(photo => {
-                const safeId = escapeJsString(photo.id);
                 const safeName = escapeHtml(photo.name || photo.filename || 'Photo');
-                const safeJsName = escapeJsString(photo.name || photo.filename || 'Photo');
-                const safeSize = formatFileSize(photo.size);
                 const imgUrl = `${API_BASE}/file/${encodeURIComponent(photo.filename)}`;
-
                 return `
-                    <div class="ft-media-card" onclick="openLightbox('${safeId}')" title="Click to view full photo & browse gallery">
+                    <div class="ft-media-card" data-id="${escapeHtml(String(photo.id))}" title="Click to view full photo and browse gallery">
                         <div class="ft-media-card-thumb">
                             <img src="${imgUrl}" alt="${safeName}" loading="lazy">
                             <div class="ft-media-card-overlay">
-                                <button class="ft-media-card-btn view" onclick="event.stopPropagation(); openLightbox('${safeId}')" title="View Fullscreen">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-                                </button>
-                                <button class="ft-media-card-btn danger" onclick="event.stopPropagation(); deleteFtFile('${safeId}', '${safeJsName}')" title="Delete Photo">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                </button>
+                                <button class="ft-media-card-btn view" data-action="view" title="View fullscreen">${ICONS.view}</button>
+                                <button class="ft-media-card-btn ${archivedScope ? 'view' : 'archive'}" data-action="${archivedScope ? 'restore' : 'archive'}" title="${archivedScope ? 'Restore from archive' : 'Move to archive'}">${archivedScope ? ICONS.restore : ICONS.archive}</button>
+                                <button class="ft-media-card-btn danger" data-action="delete" title="Delete photo">${ICONS.trash}</button>
                             </div>
                         </div>
                         <div class="ft-media-card-info">
                             <span class="ft-media-card-title">${safeName}</span>
-                            <span class="ft-media-card-size">${safeSize}</span>
+                            <span class="ft-media-card-size">${formatFileSize(photo.size)}</span>
                         </div>
                     </div>
                 `;
@@ -3843,23 +4476,27 @@
             const emptyState = document.getElementById('ftEmptyState');
             if (!tbody) return;
 
-            let files = [...ftStoredFiles];
-            if (ftSearchQuery) {
-                const q = ftSearchQuery.toLowerCase();
-                files = files.filter(f =>
-                    (f.name && f.name.toLowerCase().includes(q)) ||
-                    (f.mimetype && f.mimetype.toLowerCase().includes(q)) ||
-                    (f.sha256 && f.sha256.toLowerCase().includes(q))
-                );
-            }
+            const files = getFtVisibleFiles();
 
             if (files.length === 0) {
                 tbody.innerHTML = '';
+                const hasAny = getFtScopedFiles().length > 0;
+                const title = document.getElementById('ftEmptyTitle');
+                const sub = document.getElementById('ftEmptySub');
+                if (ftScope === 'archived') {
+                    if (title) title.textContent = hasAny ? 'No archived files match your filter' : 'No archived files';
+                    if (sub) sub.textContent = 'Move files here from the Files tab to keep them without cluttering your main list. Nothing is deleted.';
+                } else {
+                    if (title) title.textContent = hasAny ? 'No files match your filter' : 'No files stored in repository';
+                    if (sub) sub.textContent = 'Upload files above to store them losslessly with cryptographic checksums and direct URL retrieval on any host.';
+                }
                 if (emptyState) emptyState.style.display = 'flex';
+                updateFtBulkBar();
                 return;
             }
 
             if (emptyState) emptyState.style.display = 'none';
+            const archivedScope = ftScope === 'archived';
 
             tbody.innerHTML = files.map(file => {
                 const fileType = file.fileType || 'file';
@@ -3869,34 +4506,38 @@
                 else if (fileType === 'audio') iconSvg = ICONS.audio;
                 else if (fileType === 'code') iconSvg = ICONS.code;
 
-                const truncHash = file.sha256 ? (file.sha256.slice(0, 10) + '...' + file.sha256.slice(-6)) : 'Pending';
                 const fullHash = file.sha256 || '';
-                const downloadUrl = file.downloadUrl ? (window.location.origin + file.downloadUrl) : `${window.location.origin}${API_BASE}/files/${encodeURIComponent(file.id)}/download`;
+                const truncHash = fullHash ? (fullHash.slice(0, 10) + '...' + fullHash.slice(-6)) : 'Pending';
                 const safeName = escapeHtml(file.name || 'unnamed');
-                const safeJsName = escapeJsString(file.name || 'unnamed');
-                const safeId = escapeJsString(file.id);
+                const safeId = escapeHtml(String(file.id));
                 const safeSize = formatFileSize(file.size);
                 const safeDate = file.createdAt ? new Date(file.createdAt).toLocaleString() : 'N/A';
+                const selected = ftSelected.has(String(file.id));
 
                 const isImg = fileType === 'image';
-                const thumbCell = isImg 
-                    ? `<div class="ft-thumb-cell" onclick="openLightbox('${safeId}')" title="Preview and scroll photos"><img src="${API_BASE}/file/${encodeURIComponent(file.filename)}" alt="thumb"></div>`
+                const thumbCell = isImg
+                    ? `<div class="ft-thumb-cell" data-action="view" title="Preview and scroll photos"><img src="${API_BASE}/file/${encodeURIComponent(file.filename)}" alt="thumb" loading="lazy"></div>`
                     : `<div class="ft-file-icon">${iconSvg}</div>`;
 
+                const archiveBtn = archivedScope
+                    ? `<button class="ft-action-btn restore" data-action="restore" title="Restore from archive">${ICONS.restore}<span>Restore</span></button>`
+                    : `<button class="ft-action-btn archive" data-action="archive" title="Move to archive (nothing is deleted)">${ICONS.archive}<span>Archive</span></button>`;
+
                 return `
-                    <tr>
+                    <tr data-id="${safeId}" class="${selected ? 'selected' : ''}">
                         <td>
                             <div class="ft-file-cell">
+                                <input type="checkbox" class="ft-row-check" data-action="select" ${selected ? 'checked' : ''} aria-label="Select ${safeName}">
                                 ${thumbCell}
                                 <div class="ft-file-info">
-                                    <span class="ft-file-name" onclick="${isImg ? `openLightbox('${safeId}')` : `downloadFtFile('${safeId}', '${safeJsName}')`}" title="${isImg ? 'Click to view photo & scroll' : `Click to download ${safeName}`}">${safeName}</span>
+                                    <span class="ft-file-name" data-action="${isImg ? 'view' : 'download'}" title="${isImg ? 'Click to view photo and scroll' : 'Click to download'}">${safeName}</span>
                                     <span class="ft-file-mimetype">${escapeHtml(file.mimetype || 'raw')}</span>
                                 </div>
                             </div>
                         </td>
                         <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary);">${safeSize}</td>
                         <td>
-                            <span class="ft-hash-badge" onclick="copyFtSha256('${fullHash}')" title="Click to copy full SHA-256 hash: ${fullHash}">
+                            <span class="ft-hash-badge" data-action="hash" title="Click to copy full SHA-256 hash: ${escapeHtml(fullHash)}">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                                 <span>${truncHash}</span>
                             </span>
@@ -3904,41 +4545,79 @@
                         <td style="font-size: 12px; color: var(--text-tertiary);">${safeDate}</td>
                         <td style="text-align: right;">
                             <div class="ft-action-buttons">
-                                <button class="ft-action-btn primary" onclick="downloadFtFile('${safeId}', '${safeJsName}')" title="Direct download with intact filename">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                <button class="ft-action-btn primary" data-action="download" title="Direct download with intact filename">
+                                    ${ICONS.download}
                                     <span>Download</span>
                                 </button>
-                                <button class="ft-action-btn" onclick="copyFtDownloadUrl('${safeId}')" title="Copy full direct download URL for retrieval on other hosts">
+                                <button class="ft-action-btn" data-action="copy-url" title="Copy full direct download URL for retrieval on other hosts">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                                     <span>Copy URL</span>
                                 </button>
-                                <button class="ft-action-btn" onclick="copyFtCurlCommand('${safeId}', '${safeJsName}')" title="Copy ready-to-run curl command for any remote terminal">
+                                <button class="ft-action-btn" data-action="curl" title="Copy ready-to-run curl command for any remote terminal">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
                                     <span>curl</span>
                                 </button>
-                                <button class="ft-action-btn danger" onclick="deleteFtFile('${safeId}', '${safeJsName}')" title="Delete file">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                </button>
+                                ${archiveBtn}
+                                <button class="ft-action-btn danger" data-action="delete" title="Delete permanently">${ICONS.trash}</button>
                             </div>
                         </td>
                     </tr>
                 `;
-
             }).join('');
+
+            updateFtBulkBar();
+        }
+
+        function handleFtAction(action, id) {
+            const file = getFtFile(id);
+            if (!file) return;
+            const name = file.name || 'file';
+            switch (action) {
+                case 'view': openLightbox(id); break;
+                case 'download': downloadFtFile(id, name); break;
+                case 'copy-url': copyFtDownloadUrl(id); break;
+                case 'curl': copyFtCurlCommand(id, name); break;
+                case 'hash': copyFtSha256(file.sha256); break;
+                case 'archive': archiveItems([id], true); break;
+                case 'restore': archiveItems([id], false); break;
+                case 'delete': deleteFtFile(id, name); break;
+            }
+        }
+
+        function onFtTableClick(e) {
+            const el = e.target.closest('[data-action]');
+            const row = e.target.closest('tr[data-id]');
+            if (!el || !row || el.dataset.action === 'select') return;
+            handleFtAction(el.dataset.action, row.dataset.id);
+        }
+
+        function onFtTableChange(e) {
+            const box = e.target.closest('.ft-row-check');
+            const row = e.target.closest('tr[data-id]');
+            if (!box || !row) return;
+            if (box.checked) ftSelected.add(row.dataset.id); else ftSelected.delete(row.dataset.id);
+            row.classList.toggle('selected', box.checked);
+            updateFtBulkBar();
+        }
+
+        function onFtGalleryClick(e) {
+            const card = e.target.closest('.ft-media-card[data-id]');
+            if (!card) return;
+            const el = e.target.closest('[data-action]');
+            handleFtAction(el ? el.dataset.action : 'view', card.dataset.id);
         }
 
         function updateFtBadgesAndStats() {
-            const count = ftStoredFiles.length;
-            const totalBytes = ftStoredFiles.reduce((acc, f) => acc + (f.size || 0), 0);
+            const archivedCount = ftStoredFiles.filter(f => f.archived === true).length;
+            const activeCount = ftStoredFiles.length - archivedCount;
+            const scoped = getFtScopedFiles();
+            const totalBytes = scoped.reduce((acc, f) => acc + (f.size || 0), 0);
 
-            const badgeTransfer = document.getElementById('badgeTransferFiles');
-            if (badgeTransfer) badgeTransfer.textContent = count;
-
-            const pillCount = document.getElementById('ftTotalFilesCount');
-            if (pillCount) pillCount.textContent = `${count} ${count === 1 ? 'file' : 'files'}`;
-
-            const pillSize = document.getElementById('ftTotalSizeCount');
-            if (pillSize) pillSize.textContent = `${formatFileSize(totalBytes)} stored`;
+            const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+            setText('ftSegActiveCount', activeCount);
+            setText('ftSegArchivedCount', archivedCount);
+            setText('ftTotalFilesCount', `${scoped.length} ${scoped.length === 1 ? 'file' : 'files'}`);
+            setText('ftTotalSizeCount', `${formatFileSize(totalBytes)} ${ftScope === 'archived' ? 'archived' : 'stored'}`);
         }
 
         function handleFtSearch(val) {
@@ -4041,13 +4720,20 @@
         }
 
         async function deleteFtFile(id, name) {
-            if (!confirm(`Are you sure you want to delete "${name}" from stored files?`)) return;
+            const ok = await askConfirm({
+                title: `Delete "${name}"?`,
+                message: 'This permanently deletes the file from the Pi. Use Archive if you only want it out of the way.',
+                confirmText: 'Delete',
+                danger: true
+            });
+            if (!ok) return;
             try {
                 let res = await fetch(`${API_BASE}/files/${encodeURIComponent(id)}`, { method: 'DELETE' });
                 if (!res.ok) {
                     res = await fetch(`${API_BASE}/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
                 }
                 if (res.ok) {
+                    ftSelected.delete(String(id));
                     showToast(`Deleted "${name}"`);
                     await fetchAndRenderFtFiles();
                     await fetchAllItems();
@@ -4063,6 +4749,7 @@
         // Lightbox Photo Gallery Viewer Engine (Scroll, Swipe, Delete, Nav)
         // ====================================================================
         let galleryPhotos = [];
+        let galleryArchivedMode = false;
         let currentGalleryIndex = 0;
         let lastWheelNavTime = 0;
 
@@ -4072,6 +4759,7 @@
             const sourceList = (currentAppView === 'file-transfer' && ftStoredFiles.length) ? ftStoredFiles : allItems;
 
             function processItem(item) {
+                if (isArchived(item) !== galleryArchivedMode) return;
                 const isFile = item.type === 'file' || !!item.filename;
                 const fileType = item.fileType || (isFile ? 'file' : item.type);
                 const filename = item.filename || '';
@@ -4103,6 +4791,7 @@
         }
 
         function openLightbox(target) {
+            galleryArchivedMode = currentAppView === 'file-transfer' ? ftScope === 'archived' : currentFilter === 'archive';
             galleryPhotos = getAvailableGalleryPhotos();
 
             let foundIdx = -1;
@@ -4169,6 +4858,11 @@
             document.getElementById('lightboxMeta').textContent = photo.size ? formatFileSize(photo.size) : '';
             document.getElementById('lightboxCounter').textContent = `${currentGalleryIndex + 1} / ${galleryPhotos.length}`;
 
+            const archiveLabel = document.getElementById('lightboxArchiveLabel');
+            const archiveBtn = document.getElementById('lightboxArchiveBtn');
+            if (archiveLabel) archiveLabel.textContent = galleryArchivedMode ? 'Restore' : 'Archive';
+            if (archiveBtn) archiveBtn.title = galleryArchivedMode ? 'Restore photo from archive (A)' : 'Move photo to archive (A)';
+
             const prevBtn = document.getElementById('lightboxPrevBtn');
             const nextBtn = document.getElementById('lightboxNextBtn');
             if (prevBtn) prevBtn.style.visibility = galleryPhotos.length > 1 ? 'visible' : 'hidden';
@@ -4195,11 +4889,36 @@
             downloadClipFile(photo.filename, photo.name || photo.title);
         }
 
+        async function archiveCurrentGalleryPhoto() {
+            if (!galleryPhotos.length) return;
+            const photo = galleryPhotos[currentGalleryIndex];
+            const ok = await archiveItems([photo.id], !galleryArchivedMode);
+            if (!ok) return;
+            removeCurrentGalleryPhoto(photo);
+        }
+
+        function removeCurrentGalleryPhoto(photo) {
+            const idx = galleryPhotos.findIndex(p => String(p.id) === String(photo.id));
+            if (idx !== -1) galleryPhotos.splice(idx, 1);
+            if (galleryPhotos.length === 0) {
+                closeLightbox();
+            } else {
+                if (currentGalleryIndex >= galleryPhotos.length) currentGalleryIndex = galleryPhotos.length - 1;
+                renderGalleryPhoto();
+            }
+        }
+
         async function deleteCurrentGalleryPhoto() {
             if (!galleryPhotos.length) return;
             const photo = galleryPhotos[currentGalleryIndex];
             const photoName = photo.name || photo.title || 'this photo';
-            if (!confirm(`Delete "${photoName}" permanently?`)) return;
+            const ok = await askConfirm({
+                title: `Delete "${photoName}"?`,
+                message: 'This permanently deletes the photo from the Pi. Press Archive instead if you only want it out of the way.',
+                confirmText: 'Delete',
+                danger: true
+            });
+            if (!ok) return;
 
             try {
                 let res = await fetch(`${API_BASE}/files/${encodeURIComponent(photo.id)}`, { method: 'DELETE' });
@@ -4209,23 +4928,10 @@
                 if (res.ok) {
                     showToast(`Deleted "${photoName}"`);
                     allItems = allItems.filter(i => String(i.id) !== String(photo.id) && i.filename !== photo.filename);
-                    if (typeof ftStoredFiles !== 'undefined') {
-                        ftStoredFiles = ftStoredFiles.filter(f => String(f.id) !== String(photo.id) && f.filename !== photo.filename);
-                    }
+                    ftStoredFiles = ftStoredFiles.filter(f => String(f.id) !== String(photo.id) && f.filename !== photo.filename);
                     renderFeed();
-                    updateBadgeCounts();
-                    if (typeof fetchAndRenderFtFiles === 'function') fetchAndRenderFtFiles();
-
-                    // Remove from active gallery list
-                    galleryPhotos.splice(currentGalleryIndex, 1);
-                    if (galleryPhotos.length === 0) {
-                        closeLightbox();
-                    } else {
-                        if (currentGalleryIndex >= galleryPhotos.length) {
-                            currentGalleryIndex = galleryPhotos.length - 1;
-                        }
-                        renderGalleryPhoto();
-                    }
+                    fetchAndRenderFtFiles();
+                    removeCurrentGalleryPhoto(photo);
                 } else {
                     showToast('Failed to delete photo', 'error');
                 }
@@ -4235,18 +4941,125 @@
         }
 
 
-        function showToast(msg, type = 'success') {
+        function showToast(msg, type = 'success', action = null) {
             const shelf = document.getElementById('toastShelf');
             const toast = document.createElement('div');
             toast.className = 'toast';
             toast.innerHTML = `<span class="svg-icon" style="color:${type==='error'?'var(--accent-rose)':'var(--accent-green)'}">${ICONS.check}</span><span>${escapeHtml(msg)}</span>`;
-            shelf.appendChild(toast);
 
-            setTimeout(() => {
+            const dismiss = () => {
                 toast.style.opacity = '0';
                 toast.style.transform = 'translateY(10px)';
                 setTimeout(() => toast.remove(), 200);
-            }, 2600);
+            };
+
+            if (action && action.label && typeof action.onClick === 'function') {
+                const btn = document.createElement('button');
+                btn.className = 'toast-action-btn';
+                btn.textContent = action.label;
+                btn.addEventListener('click', () => { dismiss(); action.onClick(); });
+                toast.appendChild(btn);
+            }
+
+            shelf.appendChild(toast);
+            setTimeout(dismiss, action ? 6500 : 2600);
+        }
+
+        // Accessible replacements for window.confirm / window.prompt
+        let dialogDepth = 0;
+
+        function openDialog({ title, message, confirmText = 'OK', cancelText = 'Cancel', danger = false, input = null }) {
+            return new Promise(resolve => {
+                const previouslyFocused = document.activeElement;
+                const backdrop = document.createElement('div');
+                backdrop.className = 'ui-dialog-backdrop';
+
+                const dlg = document.createElement('div');
+                dlg.className = 'ui-dialog';
+                dlg.setAttribute('role', 'dialog');
+                dlg.setAttribute('aria-modal', 'true');
+
+                const titleEl = document.createElement('div');
+                titleEl.className = 'ui-dialog-title';
+                titleEl.textContent = title || '';
+                dlg.appendChild(titleEl);
+
+                if (message) {
+                    const msgEl = document.createElement('div');
+                    msgEl.className = 'ui-dialog-message';
+                    msgEl.textContent = message;
+                    dlg.appendChild(msgEl);
+                }
+
+                let inputEl = null;
+                if (input) {
+                    inputEl = document.createElement('input');
+                    inputEl.type = 'text';
+                    inputEl.value = input.value || '';
+                    inputEl.placeholder = input.placeholder || '';
+                    dlg.appendChild(inputEl);
+                }
+
+                const actions = document.createElement('div');
+                actions.className = 'ui-dialog-actions';
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'ui-btn';
+                cancelBtn.textContent = cancelText;
+                const okBtn = document.createElement('button');
+                okBtn.className = 'ui-btn ' + (danger ? 'danger' : 'primary');
+                okBtn.textContent = confirmText;
+                actions.appendChild(cancelBtn);
+                actions.appendChild(okBtn);
+                dlg.appendChild(actions);
+                backdrop.appendChild(dlg);
+
+                let closed = false;
+                const close = (result) => {
+                    if (closed) return;
+                    closed = true;
+                    document.removeEventListener('keydown', onKey, true);
+                    backdrop.remove();
+                    dialogDepth--;
+                    if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+                        try { previouslyFocused.focus(); } catch (e) {}
+                    }
+                    resolve(result);
+                };
+                const accept = () => close({ ok: true, value: inputEl ? inputEl.value : true });
+                const cancel = () => close({ ok: false, value: null });
+
+                function onKey(e) {
+                    if (e.key === 'Escape') {
+                        e.preventDefault(); e.stopPropagation(); cancel();
+                    } else if (e.key === 'Enter' && (inputEl ? document.activeElement === inputEl : document.activeElement === okBtn)) {
+                        e.preventDefault(); e.stopPropagation(); accept();
+                    } else if (e.key === 'Tab') {
+                        const order = [inputEl, cancelBtn, okBtn].filter(Boolean);
+                        const idx = order.indexOf(document.activeElement);
+                        e.preventDefault();
+                        order[(idx + (e.shiftKey ? order.length - 1 : 1)) % order.length].focus();
+                    }
+                }
+
+                okBtn.addEventListener('click', accept);
+                cancelBtn.addEventListener('click', cancel);
+                backdrop.addEventListener('mousedown', (e) => { if (e.target === backdrop) cancel(); });
+                document.addEventListener('keydown', onKey, true);
+
+                document.body.appendChild(backdrop);
+                dialogDepth++;
+                (inputEl || (danger ? cancelBtn : okBtn)).focus();
+                if (inputEl) inputEl.select();
+            });
+        }
+
+        async function askConfirm(options) {
+            return (await openDialog(options)).ok;
+        }
+
+        async function askPrompt(options) {
+            const result = await openDialog({ ...options, input: { value: options.value || '', placeholder: options.placeholder || '' } });
+            return result.ok ? result.value : null;
         }
 
         function fallbackCopy(text) {
@@ -4264,10 +5077,6 @@
         function escapeHtml(str) {
             if (!str) return '';
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-        }
-        function escapeJsString(str) {
-            if (!str) return '';
-            return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
         }
 
         function formatFileSize(bytes) {
@@ -4297,6 +5106,8 @@
 
         function switchMobileView(view) {
             currentMobileView = view;
+            // Drives `body.view-clips .tabs-header-bar { display: none }` (the tab bar precedes the split in the DOM)
+            document.body.classList.toggle('view-clips', view === 'clips');
             const split = document.querySelector('.workspace-split');
             const segEditor = document.getElementById('segBtnEditor');
             const segClips = document.getElementById('segBtnClips');
@@ -4438,6 +5249,7 @@
         });
 
         window.addEventListener('keydown', (e) => {
+            if (dialogDepth > 0) return;
             if ((e.altKey && (e.key === 'c' || e.key === 'C')) || ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'e' || e.key === 'E'))) {
                 e.preventDefault();
                 toggleFeedPanel();
@@ -4445,7 +5257,9 @@
             }
             if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
                 e.preventDefault();
-                document.getElementById('sidebarSearch').focus();
+                const feedSearch = document.getElementById('feedSearch');
+                const feedVisible = feedSearch && feedSearch.offsetParent !== null;
+                (feedVisible ? feedSearch : document.getElementById('sidebarSearch')).focus();
             }
             if (document.getElementById('lightboxModal')?.classList.contains('active')) {
                 if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
@@ -4459,6 +5273,10 @@
                 } else if (e.key === 'Delete' || e.key === 'Backspace') {
                     e.preventDefault();
                     deleteCurrentGalleryPhoto();
+                    return;
+                } else if ((e.key === 'a' || e.key === 'A') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    e.preventDefault();
+                    archiveCurrentGalleryPhoto();
                     return;
                 }
             }
@@ -4540,7 +5358,61 @@
             }, { passive: true });
         }
 
+        function initViewPrefs() {
+            const mode = Prefs.get('clipboard_cards_mode', 'auto');
+            cardsMode = ['auto', 'collapsed', 'expanded'].includes(mode) ? mode : 'auto';
+            try {
+                const saved = JSON.parse(Prefs.get('clipboard_card_overrides', '{}'));
+                if (saved && typeof saved === 'object' && !Array.isArray(saved)) cardOverrides = saved;
+            } catch (e) {}
+            setTabsCollapsed(Prefs.get('clipboard_tabs_collapsed', 'false') === 'true');
+
+            const hint = document.getElementById('searchShortcutHint');
+            if (hint) hint.textContent = /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent || '') ? '⌘F' : 'Ctrl F';
+            syncFilterUi();
+            updateCollapseAllButton();
+        }
+
+        // Paste a screenshot or file straight into the page to upload it.
+        // Real text on the clipboard always pastes as text (spreadsheet copies carry an image too).
+        function onPasteUpload(e) {
+            if (dialogDepth > 0) return;
+            const cd = e.clipboardData;
+            if (!cd || !cd.files || !cd.files.length) return;
+            if (cd.getData('text/plain')) return;
+            e.preventDefault();
+            const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+            const files = Array.from(cd.files).map(f => {
+                if (!/^(image|file)\.\w+$/i.test(f.name)) return f;
+                const dot = f.name.lastIndexOf('.');
+                return new File([f], `pasted-${stamp}${dot >= 0 ? f.name.slice(dot) : ''}`, { type: f.type });
+            });
+            uploadSelectedFiles(files);
+        }
+
+        function initDelegation() {
+            document.getElementById('feedListContainer').addEventListener('click', onFeedClick);
+            const tbody = document.getElementById('ftFilesTableBody');
+            tbody.addEventListener('click', onFtTableClick);
+            tbody.addEventListener('change', onFtTableChange);
+            document.getElementById('ftGalleryScrollContainer').addEventListener('click', onFtGalleryClick);
+
+            document.querySelector('.sidebar-nav').addEventListener('keydown', (e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('nav-item')) {
+                    e.preventDefault();
+                    e.target.click();
+                }
+            });
+
+            if (window.ResizeObserver) {
+                new ResizeObserver(() => measureCards()).observe(document.getElementById('feedListContainer'));
+            }
+            window.addEventListener('paste', onPasteUpload);
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
+            initViewPrefs();
+            initDelegation();
             fetchAndRenderFtFiles();
             initTheme();
             initParallax();

@@ -17,19 +17,9 @@ const TIERS = [
     { tier: 2, name: 'Boundary, Security & Error Conditions', file: 'tier2_security.test.js' },
     { tier: 3, name: 'Concurrency, Persistence & SSE Synchronization', file: 'tier3_persistence_sse.test.js' },
     { tier: 4, name: 'Frontend HTML/DOM Inspection & Ergonomics', file: 'tier4_frontend.test.js' },
-    { tier: 5, name: 'Lossless File Transfer & Integrity Verification', file: 'tier5_lossless_files.test.js' }
+    { tier: 5, name: 'Lossless File Transfer & Integrity Verification', file: 'tier5_lossless_files.test.js' },
+    { tier: 6, name: 'Archive & Legacy-Data Safety (always isolated)', file: 'tier6_archive_and_legacy_safety.test.js' }
 ];
-
-async function isServerHealthy(url) {
-    try {
-        const res = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(1200) });
-        if (res.ok) {
-            const data = await res.json();
-            return data && data.status === 'healthy';
-        }
-    } catch {}
-    return false;
-}
 
 async function runTestFile(testFile, env) {
     return new Promise((resolve) => {
@@ -118,22 +108,16 @@ async function main() {
     let testDataDir = process.env.TEST_DATA_DIR || null;
 
     if (!targetUrl) {
-        // Auto-detect running local server
-        if (await isServerHealthy('http://localhost:8084')) {
-            targetUrl = 'http://localhost:8084';
-            console.log(`[Auto-detect] Detected healthy server at ${GREEN}${targetUrl}${RESET}`);
-        } else if (await isServerHealthy('http://localhost:3000')) {
-            targetUrl = 'http://localhost:3000';
-            console.log(`[Auto-detect] Detected healthy server at ${GREEN}${targetUrl}${RESET}`);
-        } else {
-            console.log(`[Auto-detect] No active local server found. Starting isolated test server instance...`);
-            ephemeralServer = await startTestServer();
-            targetUrl = ephemeralServer.baseUrl;
-            testDataDir = ephemeralServer.tempDir;
-            console.log(`[Test Server] Running isolated server on ${GREEN}${targetUrl}${RESET} (PID: ${ephemeralServer.pid})`);
-        }
+        // Never auto-attach to a running server: the suite creates and deletes items, so pointing
+        // it at a live instance (e.g. the homelab container on :8084) would modify real data.
+        console.log(`Starting isolated test server instance (temp data dir, random port)...`);
+        ephemeralServer = await startTestServer();
+        targetUrl = ephemeralServer.baseUrl;
+        testDataDir = ephemeralServer.tempDir;
+        console.log(`[Test Server] Running isolated server on ${GREEN}${targetUrl}${RESET} (PID: ${ephemeralServer.pid})`);
     } else {
         console.log(`[Target] Testing against explicit target: ${GREEN}${targetUrl}${RESET}`);
+        console.log(`${YELLOW}[Warning] This suite writes and deletes data on the target. Never point it at a server holding real data.${RESET}`);
     }
 
     const tiersToRun = selectedTier 

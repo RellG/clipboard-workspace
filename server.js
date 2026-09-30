@@ -408,6 +408,35 @@ const DEFAULT_STATE = {
 
 let db = { ...DEFAULT_STATE };
 
+// Point-in-time snapshots of db.json. db.json.bak only ever mirrors the latest save, so it cannot
+// recover from a bad write; snapshots keep real history. Only valid JSON is snapshotted and only
+// files matching SNAPSHOT_NAME_RE are ever pruned.
+const SNAPSHOT_DIR = path.join(DATA_DIR, 'snapshots');
+const SNAPSHOT_NAME_RE = /^db-[0-9T-]+Z-(boot|auto)\.json$/;
+const SNAPSHOT_KEEP = { boot: 20, auto: 30 };
+const SNAPSHOT_AUTO_INTERVAL_MS = 60 * 60 * 1000;
+let lastSnapshotAt = 0;
+
+function snapshotDb(reason) {
+    try {
+        if (!fs.existsSync(DB_FILE)) return;
+        JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+        fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+        fs.copyFileSync(DB_FILE, path.join(SNAPSHOT_DIR, `db-${stamp}-${reason}.json`));
+        lastSnapshotAt = Date.now();
+
+        const mine = fs.readdirSync(SNAPSHOT_DIR)
+            .filter(f => SNAPSHOT_NAME_RE.test(f) && f.endsWith(`-${reason}.json`))
+            .sort();
+        for (const old of mine.slice(0, Math.max(0, mine.length - SNAPSHOT_KEEP[reason]))) {
+            try { fs.unlinkSync(path.join(SNAPSHOT_DIR, old)); } catch (_) {}
+        }
+    } catch (err) {
+        console.warn('[DB] Snapshot skipped:', err.message);
+    }
+}
+
 function saveDb() {
     try {
         const tempFile = path.join(DATA_DIR, `.db.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -417,6 +446,9 @@ function saveDb() {
         const fd = fs.openSync(tempFile, 'r+');
         fs.fsyncSync(fd);
         fs.closeSync(fd);
+
+        // Hourly snapshot of the state on disk *before* this write replaces it
+        if (Date.now() - lastSnapshotAt >= SNAPSHOT_AUTO_INTERVAL_MS) snapshotDb('auto');
 
         // Maintain rolling backup of existing db.json before replacing
         if (fs.existsSync(DB_FILE)) {
@@ -549,6 +581,9 @@ function syncOrphanFiles() {
 
 function loadDb() {
     let loaded = false;
+
+    // Preserve exactly what was on disk before this process touches anything.
+    snapshotDb('boot');
 
     if (fs.existsSync(DB_FILE)) {
         try {
@@ -711,8 +746,15 @@ app.get('/api/items', (req, res) => {
     const type = typeof req.query.type === 'string' ? req.query.type.trim() : '';
     const tag = typeof req.query.tag === 'string' ? req.query.tag.trim() : '';
     const pinned = typeof req.query.pinned === 'string' ? req.query.pinned.trim() : '';
+    const archived = typeof req.query.archived === 'string' ? req.query.archived.trim() : '';
     let list = [...db.items];
 
+    // Omitted = everything (backward compatible); legacy items have no `archived` field.
+    if (archived === 'true') {
+        list = list.filter(i => i.archived === true);
+    } else if (archived === 'false') {
+        list = list.filter(i => i.archived !== true);
+    }
     if (pinned === 'true') {
         list = list.filter(i => i.pinned);
     }
@@ -834,6 +876,60 @@ app.patch('/api/items/:id/pin', (req, res) => {
     res.json({ success: true, item });
 });
 
+// 4b. Archive / Restore
+// Archiving only sets a flag. It never deletes the item or its file on disk and deliberately
+// leaves updatedAt alone so a restored item returns to its original place in the feed.
+function setArchived(item, archived) {
+    if (archived) {
+        item.archived = true;
+        item.archivedAt = new Date().toISOString();
+    } else {
+        // Remove the keys entirely so a restored item is byte-for-byte its pre-archive shape.
+        delete item.archived;
+        delete item.archivedAt;
+    }
+}
+
+function archiveItemHandler(req, res) {
+    const id = String(req.params.id);
+    const item = db.items.find(i => String(i.id) === id || (i.filename && i.filename === id));
+    if (!item) return res.status(404).json({ error: 'Item not found' });
+
+    const body = req.body || {};
+    const archived = body.archived !== undefined ? body.archived === true : item.archived !== true;
+    setArchived(item, archived);
+    saveDb();
+
+    broadcastEvent('item_updated', item);
+    res.json({ success: true, item });
+}
+
+app.patch('/api/items/:id/archive', archiveItemHandler);
+app.patch('/api/files/:id/archive', archiveItemHandler);
+
+// Bulk: POST /api/items/archive { ids: [...], archived: true|false }
+app.post('/api/items/archive', (req, res) => {
+    const { ids, archived } = req.body || {};
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > 500 || typeof archived !== 'boolean') {
+        return res.status(400).json({ error: 'Body must be { ids: string[] (1-500), archived: boolean }' });
+    }
+
+    const wanted = new Set(ids.map(String));
+    const changed = [];
+    for (const item of db.items) {
+        if (wanted.has(String(item.id)) && (item.archived === true) !== archived) {
+            setArchived(item, archived);
+            changed.push(item);
+        }
+    }
+
+    if (changed.length) {
+        saveDb();
+        changed.forEach(item => broadcastEvent('item_updated', item));
+    }
+    res.json({ success: true, archived, changed: changed.map(i => String(i.id)), items: changed });
+});
+
 // 5. Delete Item Handler (for /api/items/:id, /api/text/:id, /api/file/:id)
 function deleteItemHandler(req, res, next) {
     try {
@@ -893,6 +989,8 @@ function formatFileMetadata(item) {
         fileType: item.fileType || 'file',
         sha256: item.sha256 || null,
         createdAt: item.createdAt || item.timestamp,
+        archived: item.archived === true,
+        archivedAt: item.archivedAt || null,
         downloadUrl: item.downloadUrl || `/api/files/${encodeURIComponent(id)}/download`
     };
 }
@@ -904,7 +1002,14 @@ function formatFileMetadata(item) {
 app.get('/api/files', (req, res) => {
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
     const sort = typeof req.query.sort === 'string' ? req.query.sort.trim() : '';
+    const archived = typeof req.query.archived === 'string' ? req.query.archived.trim() : '';
     let list = db.items.filter(i => i.type === 'file' || !!i.filename);
+
+    if (archived === 'true') {
+        list = list.filter(i => i.archived === true);
+    } else if (archived === 'false') {
+        list = list.filter(i => i.archived !== true);
+    }
 
     if (search) {
         const q = search.toLowerCase();
@@ -1434,6 +1539,7 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'healthy',
         items: db.items.length,
+        archivedItems: db.items.filter(i => i.archived === true).length,
         tabs: db.tabs.length,
         connectedClients: sseClients.size,
         uptime: process.uptime(),

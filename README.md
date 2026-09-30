@@ -8,7 +8,7 @@ Built to replace the habit of emailing myself links and screenshots. It runs on 
 ![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Tests](https://img.shields.io/badge/Tests-34%2F34%20Passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-50%2F50%20Passing-brightgreen)
 
 ---
 
@@ -31,7 +31,15 @@ Built to replace the habit of emailing myself links and screenshots. It runs on 
 
 **Real media streaming.** The file endpoint implements HTTP Range requests, so video and audio scrub and seek properly instead of forcing a full download first.
 
-**Organization.** Pin items to the top, auto-tagging by detected file type, and full-text search across the feed and file storage.
+**Organization.** Pin items to the top, group the feed by date, and search clips from the sidebar or the feed panel.
+
+**Archive.** Move any clip, photo, or file to the Archive to get it out of the way without deleting it. Archiving is just a flag: the file stays on disk, stays downloadable, and keeps its original position in history. Restore it any time (an Undo button appears right after archiving). In the File Transfer view you can select many files and archive or restore them at once, and in the photo viewer press `A` to archive the current photo.
+
+**Collapsible clips.** Long notes, code, and link lists are clamped in the Saved Clips panel with a "Show more" button. Every card has a chevron to collapse or expand it, and the panel header has a collapse-all / expand-all toggle. Your choices are remembered per browser.
+
+**Collapsible note tabs.** The row of scratchpad tabs can be collapsed to a single slim line showing the active tab.
+
+**Safe by default.** Loading a clip into the editor opens it in a *new* tab instead of overwriting your current note; deleting a tab or file asks for confirmation; pasting a screenshot uploads it.
 
 **Mobile-first.** Segmented navigation, touch-sized targets, and safe-area insets so it works correctly on a phone with a notch.
 
@@ -114,12 +122,15 @@ Serves the API on port 3000 and `index.html` from the same origin.
 npm test
 ```
 
-Executes the complete E2E test suite covering 34 test specifications across 5 tiers:
+`npm test` always starts its own isolated server in a temporary directory, so it can never touch real data. (Pointing it at a live server requires an explicit `--target=` / `TEST_BASE_URL`, and prints a warning: the suite creates and deletes items.)
+
+Executes the complete E2E test suite covering 50 test specifications across 6 tiers:
 - **Tier 1**: Core API Contracts & Endpoints (8 tests)
 - **Tier 2**: Boundary, Security & Error Conditions (12 tests)
 - **Tier 3**: Concurrency, Persistence & SSE Synchronization (2 tests)
 - **Tier 4**: Frontend HTML/DOM Inspection & Ergonomics (5 tests)
 - **Tier 5**: Lossless File Transfer & Integrity Verification (7 tests)
+- **Tier 6**: Archive API & legacy-data safety (16 tests): boots against a legacy-shaped `db.json` and asserts every legacy item, tab, and upload is byte-for-byte unchanged
 
 ### Configuration
 
@@ -131,7 +142,7 @@ Ports and the upload ceiling are set in `docker-compose.yml` (`8084:80`), `nginx
 
 Two host-mounted volumes hold state, and both are gitignored:
 
-- `./data` — `db.json`, the item and tab store
+- `./data` — `db.json`, the item and tab store, plus `snapshots/` (a copy of `db.json` taken at every server start and hourly while in use; the newest 20 boot and 30 hourly snapshots are kept)
 - `./uploads` — uploaded files
 
 ---
@@ -141,12 +152,14 @@ Two host-mounted volumes hold state, and both are gitignored:
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/events` | SSE stream of live item and tab changes |
-| `GET` | `/api/items` | List items — supports search and filtering |
+| `GET` | `/api/items` | List items — supports search, `type`, and `archived=true|false` filtering (omit `archived` for everything) |
 | `POST` | `/api/items` | Create a text or link item |
 | `PUT` | `/api/items/:id` | Update an item |
 | `PATCH` | `/api/items/:id/pin` | Toggle pinned state |
+| `PATCH` | `/api/items/:id/archive` | Archive / restore (`{"archived": true|false}`, omit to toggle). Never deletes anything |
+| `POST` | `/api/items/archive` | Bulk archive / restore: `{"ids": [...], "archived": true|false}` |
 | `DELETE` | `/api/items/:id` | Delete an item and its file |
-| `GET` | `/api/files` | List stored files with metadata, sizes, and SHA-256 hashes |
+| `GET` | `/api/files` | List stored files with metadata, sizes, and SHA-256 hashes (`archived=true|false` to filter) |
 | `POST` | `/api/files/upload` | Upload one or multiple files losslessly with SHA-256 generation |
 | `GET` | `/api/files/:id` | Get file metadata and download link |
 | `GET` | `/api/files/:id/download` | Download file with RFC 6266 attachment header, ETag, and Range support |
