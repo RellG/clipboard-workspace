@@ -1,205 +1,105 @@
-# Clipboard Workspace
+# Clipboard
 
-A self-hosted clipboard and scratchpad that syncs across every device on your network. Copy something on your desktop, it's on your phone before you pick it up — no account, no cloud, no third party holding your data.
+A small, self-hosted notes and file library for the homelab. Open a note, write, and let it save. Keep documents and media in their own places, with original-quality downloads and live sync across devices.
 
-Built to replace the habit of emailing myself links and screenshots. It runs on a Raspberry Pi in my homelab and has been my daily driver since.
+## Everyday use
 
-![Node](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)
-![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
-![License](https://img.shields.io/badge/license-MIT-blue)
-![Tests](https://img.shields.io/badge/Tests-70%2F70%20Passing-brightgreen)
+- **Notes:** a vertical list with pinned notes, compact previews, and one editor. Existing scratchpads and saved clips remain separate records with their original IDs and contents. Selecting a clip edits that clip; it does not create another note.
+- **Minimize:** use the minus button or `Alt+M` to tuck the editor away. Reopen the note from its row. Collapse individual previews, whole groups, or all previews from the list menu. These are browser preferences; they never move a record to Trash.
+- **Save:** edits autosave after a short pause. `Ctrl/Cmd+S` flushes pending saves to the same records. The status says Saved only after the server acknowledges persistence. “Save a copy to history” in the note menu is an explicit snapshot operation.
+- **Documents:** PDFs, text files, code uploads, archives and other attachments. **Media:** images, video and audio. The libraries are views of the same files, without moving or duplicating bytes.
+- **Search:** one search box finds active notes, clips and filenames across the three libraries. Search within Archive or Trash stays within that section. Code, Links, Pinned and Saved clips are optional note filters. File contents and OCR are not indexed.
+- **Attachments:** use Attach in a note, or paste/drop a file into the active editor. Files are stored once and linked in the note as Markdown download links. Library uploads are standalone. Trashing a note does not delete linked files.
+- **File tools:** select a file to preview or download it. File details contains SHA-256 and copyable curl commands. Original filenames, bytes and media Range requests are preserved. The upload limit remains 100 MB per file.
+- **File converter:** the sidebar shortcut opens [Local Converter](https://github.com/RellG/local-converter) in a new tab at `http://127.0.0.1:4317/`. Start the converter on the homelab PC, then use the shortcut from a browser on that same PC. The converter currently binds to loopback and checks for a local Host header, so this shortcut does not provide access from phones or other computers. Download a Clipboard file and select it in the converter; files are not transferred automatically.
+- **Archive and Trash:** archive hides an entry without deleting it. Move to Trash is explicit and recoverable, with Undo. Permanent deletion and Empty Trash require confirmation. Trash auto-purges after 30 days by default, with a snapshot taken first; `TRASH_RETENTION_DAYS=0` disables auto-purge. The original protected scratchpad/notes records still cannot be trashed.
+- **Writing tools:** plain writing is the default. The note menu has headings, checklist syntax, reading preview and code mode. Preview checklists are display-only; edit their Markdown source to change them.
 
----
+On desktop, collapse the library or use Focus on editor from the list menu. On a phone, choose a note from the list and use Back to return. Settings contains theme and retention information. `Alt+N` creates a note. No external fonts or runtime frontend dependencies are loaded.
 
-## What it does
+## Layout and scrolling
 
-**Live sync across devices.** Server-Sent Events push every change to all connected clients instantly — add an item on one device and it appears on the others without a refresh. The SSE endpoint is kept alive through Nginx with buffering disabled and a 24-hour read timeout.
+The live design uses a compact library, a vertical notes list, and one editor. Documents and Media have separate library destinations; advanced tools stay in the note menu or file details. Light/dark themes use local system fonts, with no decorative motion or external font requests.
 
-**Collapsible feed & expanded scratchpad.** The right-side "Saved Clips & History" panel can be collapsed at any time to give the notepad/scratchpad full 100% canvas width. Collapse or expand with:
-- The collapse `>>` button in the feed panel header
-- The "Clips" button in the editor toolbar
-- The "Saved Clips" button in the top navbar (with live count badge)
-- Keyboard shortcuts: `Alt+C` or `Ctrl+Shift+E`
-- Collapse preference is persisted automatically across browser reloads via `localStorage`.
+The notes list scrolls independently while its heading, search and item count remain visible. Use the mouse wheel, trackpad, or a vertical swipe to reach every note. Long note text and reading previews have their own scroll areas. On phones, Back and Minimize return to the list at the same position, including when background sync refreshed it while the editor was open. Changing library sections or filters starts at the top of the new list. List position is an in-memory convenience, not saved note data.
 
-**Dedicated File Transfer & Lossless Storage.** A dedicated section for transferring and storing files intact across hosts. Files are stored as raw unaltered bytes with zero compression or quality loss, accompanied by computed SHA-256 cryptographic hashes, single-click browser downloads preserving original filenames, and copyable `curl` commands for terminal retrieval across remote machines.
+## Drafts and conflicts
 
-**Tabbed scratchpads.** Persistent notepads alongside the clipboard feed, each with a markdown or plain-text mode and live preview. Create, rename, and delete tabs; content autosaves.
+Each pending save captures its own record ID and contents. Switching notes or minimizing does not redirect an earlier save into the new editor. Saves for a record are serialized, including edits made while a request is in flight.
 
-**Files up to 100MB.** Drag and drop anywhere on the canvas or directly in the File Transfer zone. Images, video, audio, PDFs, and markdown get inline previews rather than just a download link.
+The new client sends a computed revision token with each update. If another device changes the record first, the API responds with 409 and the local draft stays available. The recovery panel offers **Save draft as new note**, **Download draft**, or **Use server version**. It never retries a conflicting write automatically. Failed network/disk writes remain pending and can be retried.
 
-**Real media streaming.** The file endpoint implements HTTP Range requests, so video and audio scrub and seek properly instead of forcing a full download first.
+Unsaved drafts live in memory, not localStorage. Keep the page open until they are saved or downloaded; closing/reloading while drafts or uploads are pending triggers a browser warning. This is not a full offline notes app. Older API clients that omit revision tokens retain their existing update behavior.
 
-**Organization.** Pin items to the top, group the feed by date, and search clips from the sidebar or the feed panel.
+## Access
 
-**Archive.** Move any clip, photo, or file to the Archive to get it out of the way without deleting it. Archiving is just a flag: the file stays on disk, stays downloadable, and keeps its original position in history. Restore it any time (an Undo button appears right after archiving). In the File Transfer view you can select many files and archive or restore them at once, and in the photo viewer press `A` to archive the current photo.
+Clipboard remains local to the homelab and behind its VPN. There is **no built-in login** and this change adds no public route, port, or proxy. Anyone who can reach the service can access it. Keep its existing network boundary.
 
-**Collapsible clips.** Long notes, code, and link lists are clamped in the Saved Clips panel with a "Show more" button. Every card has a chevron to collapse or expand it, and the panel header has a collapse-all / expand-all toggle. Your choices are remembered per browser.
-
-**Collapsible note tabs.** The row of scratchpad tabs can be collapsed to a single slim line showing the active tab.
-
-**Reorder tabs.** Drag a tab to a new position, or use the arrow buttons in the editor toolbar (or `Alt+Shift+Left/Right`) to move the active tab. The order is saved and syncs to your other devices.
-
-**Search inside notes.** The search box also looks through the text of every note tab. Matches appear as highlighted snippets at the top of the clips panel; click one to open that tab with the match selected.
-
-**Trash with auto-purge.** "Delete" on a clip, file, photo, or note tab moves it to Trash instead of removing it (with an Undo button). Trash shows how many days each item has left; items are deleted for good after 30 days (`TRASH_RETENTION_DAYS`, `0` turns auto-purge off). Restore anything before then, delete it forever, or empty the whole trash (always behind a confirmation). Files stay on disk while they are in Trash, and a snapshot of the database is taken before every purge.
-
-**Safe by default.** Loading a clip into the editor opens it in a *new* tab instead of overwriting your current note; deleting is recoverable (Trash) and permanent deletion always asks first; pasting a screenshot uploads it.
-
-**Mobile-first.** Segmented navigation, touch-sized targets, and safe-area insets so it works correctly on a phone with a notch.
-
-**Self-healing storage.** On boot the server scans the uploads directory, computes missing SHA-256 hashes, and re-indexes any file missing from the database. Drop a file in over SCP and it shows up in the UI.
-
----
-
-## File Transfer & Cross-Host Retrieval
-
-The dedicated **File Transfer & Storage** view allows you to move files between workstations, phones, laptops, and homelab servers without third-party cloud services or quality degradation:
-
-- **Browser UI**: Navigate to **File Transfer & Storage** in the sidebar. Drag and drop any file to upload.
-- **Copy Direct Link**: Each file card/row includes a button to copy the direct URL or terminal `curl` command.
-- **Terminal Retrieval**: Fetch any stored file byte-for-byte on another host:
-
-```bash
-# Retrieve file with original filename preserved:
-curl -OJ http://<rpi-ip>:8084/api/files/<file-id>/download
-
-# Or retrieve by stored filename:
-curl -OJ http://<rpi-ip>:8084/api/file/<filename>?download=1
-```
-
-Integrity is guaranteed via `X-SHA256` and `ETag` headers:
-
-```bash
-# Verify integrity on the receiving host:
-sha256sum <downloaded-file>
-```
-
----
+Browser API requests are same-origin by default; CLI clients without an Origin header still work. Additional browser origins require an explicit comma-separated `CLIPBOARD_ALLOWED_ORIGINS` setting. Nginx forwards the original host and port so same-origin checks work on `:8084`. Markdown permits HTTP/HTTPS/mailto and application file-download links. Uploaded file responses are sandboxed, with nosniff headers.
 
 ## Architecture
 
-```
-Browser / CLI ──┐
-                │  :8084
-                ▼
-         ┌──────────────┐   /api/*   ┌──────────────┐
-         │    Nginx     │ ─────────► │   Express    │
-         │ static + gzip│   proxy    │   :3000      │
-         └──────────────┘            └──────┬───────┘
-                                            │
-                                ┌───────────┴───────────┐
-                                ▼                       ▼
-                          data/db.json           uploads/
-                        (atomic JSON store)    (lossless files + SHA256)
-```
+Browser → Nginx `:8084` → Express `:3000` → `data/db.json` and `uploads/`.
 
-Nginx serves the single-file frontend and reverse-proxies `/api/` to Express, with SSE passed through unbuffered. Both run in one container.
+- `index.html`: application shell with accessible controls and dialogs.
+- `assets/workspace.css`: system fonts, light/dark themes, responsive list/detail layout.
+- `assets/workspace-core.js`: shared save queue, file classification and safe preview formatting.
+- `assets/workspace.js`: library, editor, uploads, SSE and lifecycle actions.
+- `server.js`: existing API, lossless file storage, atomic JSON persistence and computed revision tokens.
 
-Persistence is a JSON document written atomically — serialize to a `.tmp` file, then `rename()` over the target, so an interrupted write can't corrupt the database.
+There is no frontend build step or framework migration. Docker copies both the HTML and `assets/` into Nginx. Persistent data is bind-mounted and gitignored. The API does not serve the static frontend itself.
 
----
+Atomic writes flush a temporary file and rename it over the database. A failed commit returns 503 and restores in-memory state to the last committed database. Permanent removal commits database changes before unlinking files; shared physical files are kept while another item still references them. Existing boot, hourly and pre-purge snapshots remain in `data/snapshots/`.
 
-## Running it
-
-### Docker (recommended)
-
-```bash
-git clone https://github.com/RellG/clipboard-workspace.git
-cd clipboard-workspace
-docker compose up -d
-```
-
-Open `http://localhost:8084` (or the host's LAN IP from another device).
-
-### Directly with Node
+## Running and validating
 
 ```bash
 npm install
-npm start          # or: npm run dev  — nodemon reload
+npm start  # API only, on port 3000; use Nginx for the frontend
 ```
 
-Serves the API on port 3000 and `index.html` from the same origin.
-
-### Running Tests
+Use the existing Docker Compose installation to serve the complete app. Follow `CLAUDE.md` for the Pi's Compose compatibility and deployment procedure. Rebuilding is necessary for HTML, CSS and JavaScript changes because they are copied into the image.
 
 ```bash
 npm test
 ```
 
-`npm test` always starts its own isolated server in a temporary directory, so it can never touch real data. (Pointing it at a live server requires an explicit `--target=` / `TEST_BASE_URL`, and prints a warning: the suite creates and deletes items.)
+The runner starts a temporary server with synthetic data and a random port. Never pass a live address through `--target` or `TEST_BASE_URL`: those options explicitly allow writes/deletes. Project guidance defaults to the development PC. The user explicitly authorized isolated Pi validation on 2026-11-02, provided it uses only temporary synthetic data and separate ports, without live requests or access to real data.
 
-Executes the complete E2E test suite covering 70 test specifications across 7 tiers:
-- **Tier 1**: Core API Contracts & Endpoints (8 tests)
-- **Tier 2**: Boundary, Security & Error Conditions (12 tests)
-- **Tier 3**: Concurrency, Persistence & SSE Synchronization (2 tests)
-- **Tier 4**: Frontend HTML/DOM Inspection & Ergonomics (5 tests)
-- **Tier 5**: Lossless File Transfer & Integrity Verification (7 tests)
-- **Tier 6**: Archive API & legacy-data safety (16 tests): boots against a legacy-shaped `db.json` and asserts every legacy item, tab, and upload is byte-for-byte unchanged
-- **Tier 7**: Trash, auto-purge & tab ordering (20 tests): restore returns items to their exact shape; auto-purge only removes entries trashed longer than the retention period (never entries with a missing or invalid date, archived items, or a file still used by another item)
+The suite covers API contracts, malformed requests, persistence/SSE, per-note save queues, safe previews, file routing, lossless transfer, unchanged legacy records, archive/trash/retention, computed revisions, conflicts and failed disk commits. Browser layout and touch interaction also need verification before deployment; passing API/core tests does not establish visual correctness.
 
-### Configuration
+The isolated browser regression is available separately:
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `PORT`   | `3000`  | Express listen port |
+```bash
+PLAYWRIGHT_MODULE_PATH=/path/to/playwright \
+CHROMIUM_EXECUTABLE_PATH=/path/to/chromium \
+npm run test:scroll
+```
 
-Ports and the upload ceiling are set in `docker-compose.yml` (`8084:80`), `nginx.conf` (`client_max_body_size`), and the Multer limit in `server.js` — change all three together if you raise the cap.
+Use an existing Playwright installation, or omit those environment variables when Playwright and its Chromium browser are already available through normal module resolution. The test intercepts every request and serves synthetic HTML/assets/API fixtures in memory; it starts no server and never contacts the live app. It checks wheel scrolling, touch swipes, reaching the final note, list position after Back/background refresh, and scrolling long text/reading previews at desktop, laptop, tablet, phone and landscape sizes. Chromium touch emulation does not replace physical-device Safari testing.
 
-Two host-mounted volumes hold state, and both are gitignored:
+Before deployment, back up the live database and uploads and record hashes. After deployment, verify health and unchanged legacy content/file hashes, accounting for legitimate user edits. Do not start a second server in the project root; startup writes/reindexes data and may purge expired Trash. All test servers must use a separate working directory.
 
-- `./data` — `db.json`, the item and tab store, plus `snapshots/` (a copy of `db.json` taken at every server start and hourly while in use; the newest 20 boot, 30 hourly, and 10 pre-purge snapshots are kept)
-- `./uploads` — uploaded files
+## API additions
 
----
+Existing item, tab, file, archive, Trash, download and SSE endpoints remain available. New behavior:
 
-## API
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/workspace` | Read tabs and items with computed `_revision` tokens and retention settings; never persists the tokens. |
+| `PUT /api/tabs/:id` | Accept optional `baseRevision`; reject stale drafts with 409; return `revision` on success. |
+| `PUT /api/items/:id` | Same optional conflict check; allows an existing note to be cleared. Creation still requires nonempty text. |
+| `PATCH /api/tabs/:id/archive` | Archive or restore a note tab using optional flags; restoring removes the flags. |
+| `PATCH /api/tabs/:id/pin` | Pin/unpin a note tab without changing its content or timestamp. |
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/events` | SSE stream of live item and tab changes |
-| `GET` | `/api/items` | List items — supports search, `type`, and `archived=true\|false` and `trashed=true\|false` filtering (omit them for everything) |
-| `POST` | `/api/items` | Create a text or link item |
-| `PUT` | `/api/items/:id` | Update an item |
-| `PATCH` | `/api/items/:id/pin` | Toggle pinned state |
-| `PATCH` | `/api/items/:id/trash` | Move to / restore from Trash (`{"trashed": true\|false}`, omit to toggle). Files stay on disk |
-| `POST` | `/api/items/trash` | Bulk trash / restore: `{"ids": [...], "trashed": true\|false}` |
-| `POST` | `/api/trash/empty` | Permanently delete everything in Trash. Requires `{"confirm": true}` |
-| `PATCH` | `/api/items/:id/archive` | Archive / restore (`{"archived": true\|false}`, omit to toggle). Never deletes anything |
-| `POST` | `/api/items/archive` | Bulk archive / restore: `{"ids": [...], "archived": true\|false}` |
-| `DELETE` | `/api/items/:id` | **Permanently** delete an item and its file (the UI uses Trash instead; this is what "Delete forever" calls) |
-| `GET` | `/api/files` | List stored files with metadata, sizes, and SHA-256 hashes (`archived=true\|false` to filter) |
-| `POST` | `/api/files/upload` | Upload one or multiple files losslessly with SHA-256 generation |
-| `GET` | `/api/files/:id` | Get file metadata and download link |
-| `GET` | `/api/files/:id/download` | Download file with RFC 6266 attachment header, ETag, and Range support |
-| `DELETE` | `/api/files/:id` | Delete file from disk and database |
-| `POST` | `/api/file` | Legacy file upload endpoint |
-| `GET` | `/api/file/:filename` | Serve a file — Range-aware; `?download=1` to force download |
-| `GET` | `/api/tabs` | List scratchpad tabs (`trashed=true\|false` to filter) |
-| `POST` | `/api/tabs` | Create a tab |
-| `PUT` | `/api/tabs/:id` | Update tab content or metadata |
-| `PUT` | `/api/tabs/order` | Reorder tabs: `{"ids": [...]}`. Only the order changes, never tab contents |
-| `PATCH` | `/api/tabs/:id/trash` | Move a tab to / restore it from Trash (the `scratchpad` and `notes` tabs cannot be trashed) |
-| `DELETE` | `/api/tabs/:id` | Delete a tab |
-| `GET` | `/api/health` | Health check |
+Computed revisions and new tab flags do not require a database migration. Existing records, IDs, tab order and lifecycle rules stay valid. File paths and terminal retrieval continue to work, for example:
 
----
+```bash
+curl -fLOJ 'http://<homelab-ip>:8084/api/files/<file-id>/download'
+```
 
-## Security
+## Implementation status
 
-**This ships with no authentication and is built for a trusted LAN.** Anyone who can reach the port can read and write everything in it.
+The 2026-11-10 source update includes the current Notes/Documents/Media interface, scrolling improvements, and the Local Converter sidebar shortcut. All 75 automated tests passed again against isolated synthetic data. The converter shortcut requires a Docker rebuild to appear on an existing installation and opens the converter on the computer using the browser.
 
-Do not expose it directly to the internet. If you need access from outside, put it behind a VPN (e.g. WireGuard) or an authenticating reverse proxy.
-
-On upload, stored files are protected against directory traversal and null bytes. Filenames are decoded safely and stored with disk isolation. Range requests and query parameters are strictly guarded against type-confusion and out-of-bound errors.
-
----
-
-## Stack
-
-Node.js · Express · Multer · Server-Sent Events · Nginx · Docker · vanilla JS frontend, no build step
-
-## License
-
-MIT
+Source implementation is complete and all 75 automated tests passed in the authorized isolated Pi run. See `SIMPLIFICATION_PLAN.md` for the design, scope and validation record. The new interface was rebuilt and deployed on 2026-11-03. Postdeployment API checks and served-asset comparisons passed; the database remained byte-identical to the predeployment backup and all upload hashes matched. The scrolling follow-up is also deployed: desktop wheel and mobile touch/Back checks passed against the live app, backed by six isolated viewport scenarios and reduced-height phone checks. See `SIMPLIFICATION_PLAN.md` for the release record.

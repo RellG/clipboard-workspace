@@ -17,6 +17,7 @@ COPY --from=backend /app /app
 WORKDIR /app
 
 COPY index.html /usr/share/nginx/html/
+COPY assets /usr/share/nginx/html/assets
 COPY nginx.conf /etc/nginx/nginx.conf
 
 COPY start.sh /start.sh

@@ -1,131 +1,86 @@
 const { describe, it } = require('node:test');
-const assert = require('node:assert');
-const fs = require('fs');
-const path = require('path');
-const { PROJECT_ROOT } = require('./test_helpers');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { SaveQueue, markdown, safeLink, fileCategory } = require('../assets/workspace-core');
+const root = path.resolve(__dirname, '..');
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const app = fs.readFileSync(path.join(root, 'assets/workspace.js'), 'utf8');
+const css = fs.readFileSync(path.join(root, 'assets/workspace.css'), 'utf8');
+function deferred() { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; }
 
-describe('Tier 4: Frontend HTML/DOM Inspection & Ergonomics', () => {
-    const indexPath = path.join(PROJECT_ROOT, 'index.html');
-    assert.ok(fs.existsSync(indexPath), `index.html must exist at ${indexPath}`);
-    const html = fs.readFileSync(indexPath, 'utf8');
-
-    it('Viewport meta tag must not disable zoom (maximum-scale=1.0 and user-scalable=no must be eliminated)', () => {
-        const viewportMatch = html.match(/<meta[^>]*name=["']viewport["'][^>]*>/i);
-        assert.ok(viewportMatch, 'index.html must contain a viewport meta tag');
-        const viewportTag = viewportMatch[0];
-
-        const hasMaxScale = /maximum-scale\s*=\s*1(\.0)?/i.test(viewportTag);
-        const hasUserScalableNo = /user-scalable\s*=\s*(no|0)/i.test(viewportTag);
-
-        assert.strictEqual(
-            hasMaxScale,
-            false,
-            `Viewport meta tag disables zoom with maximum-scale=1.0: "${viewportTag}". WCAG accessibility requires user zoom.`
-        );
-        assert.strictEqual(
-            hasUserScalableNo,
-            false,
-            `Viewport meta tag disables zoom with user-scalable=no: "${viewportTag}". WCAG accessibility requires user zoom.`
-        );
+describe('Tier 4: Notes behavior and safe previews', () => {
+    it('Captures independent note drafts before a rapid switch and flushes to their own IDs', async () => {
+        const sent = [];
+        const queue = new SaveQueue(async (key, body, revision) => { sent.push({ key, body, revision }); return { revision: key + '-saved' }; }, () => {}, 60000);
+        const body = { content: 'Alpha draft', name: 'Alpha' };
+        queue.edit('tabs:a', body, 'a-base'); body.content = 'Other editor text';
+        queue.edit('tabs:b', { content: 'Beta draft', name: 'Beta' }, 'b-base');
+        assert.equal(await queue.flushAll(), true);
+        assert.deepEqual(sent.map(s => [s.key, s.body.content, s.revision]), [['tabs:a', 'Alpha draft', 'a-base'], ['tabs:b', 'Beta draft', 'b-base']]);
+        assert.equal(queue.anyDirty(), false);
     });
-
-    it('Fallback clipboard implementation exists and handles clipboard API unavailability', () => {
-        // 1. execCommand copy fallback must be defined
-        const hasExecCommand = html.includes("execCommand('copy')") || html.includes('execCommand("copy")');
-        assert.strictEqual(
-            hasExecCommand,
-            true,
-            "Expected fallback clipboard function using document.execCommand('copy') when navigator.clipboard is unavailable"
-        );
-
-        // 2. Must be wired to catch block or conditional check
-        const hasFallbackInvocation = /fallbackCopy|\.catch\([^)]*copy/i.test(html);
-        assert.strictEqual(
-            hasFallbackInvocation,
-            true,
-            'Expected clipboard action to invoke fallbackCopy on failure or rejection'
-        );
-
-        // 3. copyText checks isSecureContext or navigator.clipboard before calling writeText
-        const checksSecureOrClipboard = /isSecureContext.*navigator\.clipboard|navigator\.clipboard.*isSecureContext/s.test(html);
-        assert.strictEqual(
-            checksSecureOrClipboard,
-            true,
-            'Expected copyText to check isSecureContext or navigator.clipboard before calling writeText'
-        );
+    it('Serializes edits made while a save is in flight and uses the acknowledged revision', async () => {
+        const first = deferred(), calls = [];
+        const queue = new SaveQueue(async (key, body, revision) => { calls.push([body.content, revision]); if (calls.length === 1) await first.promise; return { revision: 'v' + calls.length }; }, () => {}, 60000);
+        queue.edit('tabs:a', { content: 'one' }, 'v0');
+        const flushing = queue.flush('tabs:a'); await Promise.resolve();
+        queue.edit('tabs:a', { content: 'two' }, 'v0');
+        first.resolve(); assert.equal(await flushing, true);
+        assert.deepEqual(calls, [['one', 'v0'], ['two', 'v1']]);
+        assert.equal(queue.dirty('tabs:a'), false);
     });
-
-    it('SSE reconnect state handling and reconnecting visual indicator must be implemented', () => {
-        // Check for EventSource error handler and reconnect indicator
-        const hasSseOnError = /sseSource\.onerror|\.addEventListener\(\s*['"]error['"]/i.test(html);
-        const hasReconnectUi = /reconnect|connection-status|badge-reconnecting|is-reconnecting/i.test(html);
-
-        assert.strictEqual(
-            hasSseOnError,
-            true,
-            'Expected EventSource onerror or error event listener to detect SSE stream disconnections'
-        );
-        assert.strictEqual(
-            hasReconnectUi,
-            true,
-            'Expected reconnect state handling with a visible reconnecting indicator in frontend UI'
-        );
+    it('Keeps failed drafts and retries without reporting saved', async () => {
+        let fail = true;
+        const queue = new SaveQueue(async () => { if (fail) throw new Error('Disk full'); return { revision: 'v1' }; }, () => {}, 60000);
+        queue.edit('tabs:a', { content: 'recover me' }, 'v0');
+        assert.equal(await queue.flush('tabs:a'), false);
+        assert.equal(queue.dirty('tabs:a'), true);
+        assert.equal(queue.entries.get('tabs:a').pending.content, 'recover me');
+        fail = false; assert.equal(await queue.flush('tabs:a', true), true);
+        assert.equal(queue.anyDirty(), false);
     });
-
-    it('CSS mobile styles at 375px: prevents overflow and hides tabs header bar in clips mode', () => {
-        // 1. Mobile media query for <= 768px, <= 600px, or 375px phone viewports
-        const hasMobileMediaQuery = /@media[^{]*(max-width:\s*(375|400|480|600|768)px)/i.test(html);
-        assert.strictEqual(
-            hasMobileMediaQuery,
-            true,
-            'Expected CSS media queries catering to mobile screen widths (375px to 768px)'
-        );
-
-        // 2. Body or app layout prevents horizontal scroll / overflow
-        const hasOverflowProtection = /overflow(-x)?:\s*hidden/i.test(html);
-        assert.strictEqual(
-            hasOverflowProtection,
-            true,
-            'Expected overflow protection to prevent horizontal blowout on mobile viewports'
-        );
-
-        // 3. Tabs header bar must be specifically hidden when clips mode is active
-        const hidesTabsInClipsMode = 
-            /(view-clips[^{}]*(\.tabs-header-bar|#tabsHeaderBar)|(\.tabs-header-bar|#tabsHeaderBar)[^{}]*view-clips)[^{}]*\{[^}]*display:\s*none/i.test(html) ||
-            /view-clips\s*~[^{}]*(\.tabs-header-bar|#tabsHeaderBar)[^{}]*\{[^}]*display:\s*none/i.test(html) ||
-            /body\.view-clips\s*(\.tabs-header-bar|#tabsHeaderBar)[^{}]*\{[^}]*display:\s*none/i.test(html) ||
-            /\.app-layout\.view-clips\s*(\.tabs-header-bar|#tabsHeaderBar)[^{}]*\{[^}]*display:\s*none/i.test(html);
-
-        assert.strictEqual(
-            hidesTabsInClipsMode,
-            true,
-            'Expected CSS rule hiding .tabs-header-bar / #tabsHeaderBar when in clips mode (.view-clips) on mobile'
-        );
+    it('Never automatically overwrites a conflict, even when retry is requested', async () => {
+        let calls = 0;
+        const queue = new SaveQueue(async () => { calls++; throw Object.assign(new Error('Conflict'), { status: 409 }); }, () => {}, 60000);
+        queue.edit('tabs:a', { content: 'mine' }, 'old');
+        assert.equal(await queue.flush('tabs:a'), false);
+        queue.edit('tabs:a', { content: 'mine, continued' }, 'old');
+        assert.equal(await queue.flushAll(true), false);
+        assert.equal(calls, 1); assert.equal(queue.entries.get('tabs:a').pending.content, 'mine, continued');
+        queue.forget('tabs:a');
     });
-
-    it('Saved Clips & History collapsible right panel: collapse and expand controls, keyboard shortcuts, and state handling', () => {
-        // 1. Collapse button exists in feed header
-        assert.ok(html.includes('id="collapseFeedBtn"'), 'Must contain #collapseFeedBtn in feed-header');
-        assert.ok(html.includes('collapseFeedPanel()'), 'Must invoke collapseFeedPanel() on click');
-
-        // 2. Expand button exists in navbar and clips toggle exists in editor toolbar
-        assert.ok(html.includes('id="expandFeedBtn"'), 'Must contain #expandFeedBtn in navbar');
-        assert.ok(html.includes('expandFeedPanel()'), 'Must invoke expandFeedPanel() on click');
-        assert.ok(html.includes('id="toolbarClipsToggleBtn"'), 'Must contain #toolbarClipsToggleBtn in editor toolbar');
-        assert.ok(html.includes('toggleFeedPanel()'), 'Must invoke toggleFeedPanel() on click');
-
-        // 3. Grid collapse CSS rules exist for feed-collapsed
-        assert.ok(html.includes('.workspace-split.feed-collapsed'), 'Must contain .workspace-split.feed-collapsed CSS rules');
-        assert.ok(/grid-template-columns:\s*1fr\s+0px/i.test(html), 'Must collapse right column to 0px in feed-collapsed state');
-
-        // 4. JS functions exist: collapseFeedPanel, expandFeedPanel, toggleFeedPanel, isFeedPanelCollapsed
-        assert.ok(html.includes('function collapseFeedPanel('), 'Must define collapseFeedPanel()');
-        assert.ok(html.includes('function expandFeedPanel('), 'Must define expandFeedPanel()');
-        assert.ok(html.includes('function toggleFeedPanel('), 'Must define toggleFeedPanel()');
-        assert.ok(html.includes('function isFeedPanelCollapsed('), 'Must define isFeedPanelCollapsed()');
-
-        // 5. State persistence with localStorage and keyboard shortcut (Alt+C)
-        assert.ok(html.includes('clipboard_feed_collapsed'), 'Must persist collapse state in localStorage');
-        assert.ok(/altKey.*(?:'c'|"c")/i.test(html) || /(?:'c'|"c").*altKey/i.test(html), 'Must support Alt+C keyboard shortcut');
+    it('Uses a refreshed server revision when editing a previously saved note again', async () => {
+        const versions = [];
+        const queue = new SaveQueue(async (key, body, revision) => { versions.push(revision); return { revision: 'local-saved' }; }, () => {}, 60000);
+        queue.edit('tabs:a', { content: 'one' }, 'v0'); await queue.flushAll();
+        queue.edit('tabs:a', { content: 'two' }, 'remote-newer'); await queue.flushAll();
+        assert.deepEqual(versions, ['v0', 'remote-newer']);
+    });
+    it('Treats uploaded documents separately from image, video and audio files', () => {
+        assert.equal(fileCategory({ mimetype: 'application/pdf', name: 'manual.pdf' }), 'documents');
+        assert.equal(fileCategory({ mimetype: 'text/plain', name: 'misleading.mp4' }), 'documents');
+        for (const mimetype of ['image/png', 'video/mp4', 'audio/ogg']) assert.equal(fileCategory({ mimetype }), 'media');
+        assert.equal(fileCategory({ mimetype: 'application/octet-stream', name: 'video.MOV' }), 'media');
+        assert.equal(fileCategory({ name: 'backup.bin' }), 'documents');
+    });
+    it('Renders notes without active HTML, unsafe URL schemes or interactive unsaved checkboxes', () => {
+        const output = markdown('<img src=x onerror=alert(1)>\n[click](javascript:alert)\n- [ ] task\n```html\n<script>alert(1)</script>\n```');
+        assert.ok(!output.includes('<img')); assert.ok(!output.includes('<script>')); assert.ok(!output.includes('href="javascript:'));
+        assert.ok(!output.includes('<input')); assert.ok(output.includes('☐ task'));
+        assert.ok(output.includes('&lt;script&gt;'));
+        for (const url of ['javascript:alert(1)', 'data:text/html,hi', '//evil.test/path', '/api/trash/empty']) assert.equal(safeLink(url), null);
+        assert.equal(safeLink('/api/files/123/download'), '/api/files/123/download');
+        assert.ok(markdown('[example](https://example.com)').includes('rel="noopener noreferrer"'));
+    });
+    it('Provides zoom, labeled local assets, mobile list navigation and a single search field', () => {
+        assert.ok(!/maximum-scale=1|user-scalable=no/.test(html));
+        assert.equal((html.match(/type="search"/g) || []).length, 1);
+        assert.ok(!/https:\/\/fonts\./.test(html));
+        for (const name of ['workspace.css', 'workspace-core.js', 'workspace.js']) assert.ok(fs.existsSync(path.join(root, 'assets', name)));
+        assert.ok(css.includes('@media(max-width:600px)')); assert.ok(css.includes('.app.show-detail .detail'));
+        assert.ok(app.includes("event.key.toLowerCase() === 's'"));
+        assert.ok(app.includes('saves.flushAll(true)')); assert.ok(app.includes("document.execCommand('copy')"));
+        assert.ok(!app.includes('requestAnimationFrame')); assert.ok(!app.includes("localStorage.setItem('content'"));
     });
 });

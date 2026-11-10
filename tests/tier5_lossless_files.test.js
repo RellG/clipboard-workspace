@@ -146,19 +146,14 @@ describe('Tier 5: Lossless File Transfer & Integrity Verification', () => {
         uploadedFileItem = null;
     });
 
-    it('Frontend DOM: index.html contains dedicated File Transfer view, drop zone, table, and actions', () => {
-        const htmlPath = path.join(__dirname, '..', 'index.html');
-        assert.ok(fs.existsSync(htmlPath), 'index.html must exist');
-        const html = fs.readFileSync(htmlPath, 'utf8');
-
-        assert.ok(html.includes('id="fileTransferView"'), 'index.html must contain #fileTransferView');
-        assert.ok(html.includes('id="navItemFileTransfer"'), 'index.html must contain #navItemFileTransfer in sidebar');
-        assert.ok(html.includes('id="ftDropZone"'), 'index.html must contain #ftDropZone');
-        assert.ok(html.includes('id="ftFilesTable"'), 'index.html must contain #ftFilesTable');
-        assert.ok(html.includes('id="ftSearchInput"'), 'index.html must contain #ftSearchInput');
-        assert.ok(html.includes('switchAppView'), 'index.html must implement switchAppView()');
-        assert.ok(html.includes('downloadFtFile'), 'index.html must implement downloadFtFile()');
-        assert.ok(html.includes('copyFtCurlCommand'), 'index.html must implement copyFtCurlCommand()');
-        assert.ok(html.includes('copyFtDownloadUrl'), 'index.html must implement copyFtDownloadUrl()');
+    it('Frontend separates Documents and Media while keeping original download and CLI tools', () => {
+        const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+        const app = fs.readFileSync(path.join(__dirname, '..', 'assets/workspace.js'), 'utf8');
+        assert.ok(html.includes('data-view="documents"'));
+        assert.ok(html.includes('data-view="media"'));
+        assert.ok(app.includes('Download original'));
+        assert.ok(app.includes('Copy curl command'));
+        assert.ok(app.includes('Copy checksum'));
+        assert.ok(app.includes('/files/upload'));
     });
 });

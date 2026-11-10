@@ -19,7 +19,8 @@ const TIERS = [
     { tier: 4, name: 'Frontend HTML/DOM Inspection & Ergonomics', file: 'tier4_frontend.test.js' },
     { tier: 5, name: 'Lossless File Transfer & Integrity Verification', file: 'tier5_lossless_files.test.js' },
     { tier: 6, name: 'Archive & Legacy-Data Safety (always isolated)', file: 'tier6_archive_and_legacy_safety.test.js' },
-    { tier: 7, name: 'Trash, Auto-purge & Tab Ordering (always isolated)', file: 'tier7_trash_tabs_search.test.js' }
+    { tier: 7, name: 'Trash, Auto-purge & Tab Ordering (always isolated)', file: 'tier7_trash_tabs_search.test.js' },
+    { tier: 8, name: 'Workspace, Conflicts & Save Failures (always isolated)', file: 'tier8_workspace.test.js' }
 ];
 
 async function runTestFile(testFile, env) {
@@ -168,6 +169,10 @@ async function main() {
                 console.log(`  ${RED}✖ [FAIL]${RESET} Suite execution error: ${runResult.stderr || runResult.stdout}`);
             }
 
+            if (runResult.code !== 0 && tierFailed === 0) {
+                summary.total++; summary.failed++; tierFailed++;
+                console.log(runResult.stderr || runResult.stdout);
+            }
             summary.tierStats[tierConfig.tier] = {
                 name: tierConfig.name,
                 total: tierPassed + tierFailed,

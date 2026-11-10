@@ -20,7 +20,22 @@ if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 // Middleware
-app.use(cors());
+// Browser requests are same-origin by default. CLI clients without Origin remain supported.
+const allowedOrigins = new Set((process.env.CLIPBOARD_ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean));
+function allowedOrigin(req, origin) {
+    if (!origin) return true;
+    try {
+        const url = new URL(origin);
+        return allowedOrigins.has(url.origin) || (['http:', 'https:'].includes(url.protocol) && url.host === req.get('host'));
+    } catch (_) { return false; }
+}
+app.use((req, res, next) => {
+    if (!allowedOrigin(req, req.get('origin'))) return res.status(403).json({ error: 'Origin is not allowed' });
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+});
+app.use(cors({ origin: (origin, cb) => cb(null, origin || false) }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -407,6 +422,7 @@ const DEFAULT_STATE = {
 };
 
 let db = { ...DEFAULT_STATE };
+let committedDb = null;
 
 // Point-in-time snapshots of db.json. db.json.bak only ever mirrors the latest save, so it cannot
 // recover from a bad write; snapshots keep real history. Only valid JSON is snapshotted and only
@@ -447,8 +463,9 @@ function snapshotDb(reason) {
 }
 
 function saveDb() {
+    let tempFile;
     try {
-        const tempFile = path.join(DATA_DIR, `.db.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+        tempFile = path.join(DATA_DIR, `.db.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
         fs.writeFileSync(tempFile, JSON.stringify(db, null, 2), 'utf8');
 
         // Flush file to disk before renaming
@@ -471,6 +488,7 @@ function saveDb() {
         }
 
         fs.renameSync(tempFile, DB_FILE);
+        committedDb = JSON.stringify(db);
 
         // Keep rolling backup updated
         try {
@@ -478,6 +496,11 @@ function saveDb() {
         } catch (_) {}
     } catch (err) {
         console.error('[DB] Error saving db.json:', err);
+        if (committedDb) db = JSON.parse(committedDb);
+        if (tempFile) { try { fs.unlinkSync(tempFile); } catch (_) {} }
+        const failure = new Error('Unable to save changes. Please retry.');
+        failure.status = 503;
+        throw failure;
     }
 }
 
@@ -672,6 +695,7 @@ function loadDb() {
         }
     }
 
+    committedDb = JSON.stringify(db);
     syncOrphanFiles();
     saveDb();
 }
@@ -748,6 +772,22 @@ function detectContentType(content, explicitType) {
 // ============================================================================
 // REST API Endpoints: Items & Tabs
 // ============================================================================
+
+function revision(entry) {
+    return crypto.createHash('sha256').update(JSON.stringify(entry)).digest('hex');
+}
+function withRevision(entry) { return { ...entry, _revision: revision(entry) }; }
+function checkRevision(req, res, entry) {
+    if ((req.body || {}).baseRevision !== undefined && req.body.baseRevision !== revision(entry)) {
+        res.status(409).json({ error: 'This note changed on another device. Your draft has been kept.', current: withRevision(entry) });
+        return false;
+    }
+    return true;
+}
+app.get('/api/workspace', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ tabs: db.tabs.map(withRevision), items: db.items.map(withRevision), trashRetentionDays: TRASH_RETENTION_DAYS });
+});
 
 // 1. Get All Items
 app.get('/api/items', (req, res) => {
@@ -851,11 +891,12 @@ function updateItemHandler(req, res, next) {
         }
 
         const existing = db.items[index];
+        if (!checkRevision(req, res, existing)) return;
         const { content, title, type, language, tags, pinned } = req.body || {};
 
         if (content !== undefined) {
-            if (typeof content !== 'string' || content.trim().length === 0) {
-                return res.status(400).json({ error: 'Content must be a non-empty string' });
+            if (typeof content !== 'string') {
+                return res.status(400).json({ error: 'Content must be a string' });
             }
             existing.content = content;
         }
@@ -868,7 +909,7 @@ function updateItemHandler(req, res, next) {
 
         saveDb();
         broadcastEvent('item_updated', existing);
-        res.json({ success: true, item: existing });
+        res.json({ success: true, item: existing, revision: revision(existing) });
     } catch (err) {
         next(err);
     }
@@ -1011,6 +1052,7 @@ function removeTrashedEntries(predicate) {
     db.items = db.items.filter(i => !dropItems.has(i));
     db.tabs = db.tabs.filter(t => !dropTabs.has(t));
 
+    saveDb();
     for (const item of items) {
         if (!item.filename) continue;
         if (db.items.some(o => o.filename === item.filename)) continue;
@@ -1020,7 +1062,6 @@ function removeTrashedEntries(predicate) {
         }
     }
 
-    saveDb();
     for (const item of items) {
         broadcastEvent('item_deleted', { id: item.id });
         if (item.filename) broadcastEvent('file_deleted', { id: item.id, filename: item.filename });
@@ -1060,7 +1101,9 @@ function deleteItemHandler(req, res, next) {
         }
 
         const item = db.items[index];
-        if (item.filename) {
+        db.items.splice(index, 1);
+        saveDb();
+        if (item.filename && !db.items.some(other => other.filename === item.filename)) {
             const safeFilename = path.basename(item.filename);
             const resolvedUploadsDir = path.resolve(UPLOADS_DIR);
             const filePath = path.resolve(resolvedUploadsDir, safeFilename);
@@ -1070,9 +1113,6 @@ function deleteItemHandler(req, res, next) {
                 }
             }
         }
-
-        db.items.splice(index, 1);
-        saveDb();
 
         broadcastEvent('item_deleted', { id: item.id });
         if (item.type === 'file' || item.filename) {
@@ -1280,6 +1320,7 @@ app.get('/api/files/:id/download', (req, res, next) => {
 
         // Set standard security, caching, and range headers
         res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'; media-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'");
         res.setHeader('Cache-Control', 'private, no-transform');
         res.setHeader('Accept-Ranges', 'bytes');
         if (sha256) {
@@ -1395,7 +1436,9 @@ app.delete('/api/files/:id', (req, res, next) => {
         }
 
         const item = db.items[index];
-        if (item.filename) {
+        db.items.splice(index, 1);
+        saveDb();
+        if (item.filename && !db.items.some(other => other.filename === item.filename)) {
             const resolved = resolveUploadPath(item.filename, false);
             if (resolved && fs.existsSync(resolved.targetPath)) {
                 try {
@@ -1405,9 +1448,6 @@ app.delete('/api/files/:id', (req, res, next) => {
                 }
             }
         }
-
-        db.items.splice(index, 1);
-        saveDb();
 
         broadcastEvent('file_deleted', { id: item.id, filename: item.filename });
         broadcastEvent('item_deleted', { id: item.id });
@@ -1501,6 +1541,7 @@ app.get('/api/file/:filename', (req, res, next) => {
 
         // Security headers: nosniff
         res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Security-Policy', "sandbox; default-src 'none'; media-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'");
         res.setHeader('Cache-Control', 'private, no-transform');
         res.setHeader('Accept-Ranges', 'bytes');
         if (sha256) {
@@ -1657,9 +1698,31 @@ app.patch('/api/tabs/:id/trash', (req, res) => {
     res.json({ success: true, tab });
 });
 
+app.patch('/api/tabs/:id/archive', (req, res) => {
+    const tab = db.tabs.find(t => t.id === req.params.id);
+    if (!tab) return res.status(404).json({ error: 'Tab not found' });
+    setArchived(tab, req.body.archived !== undefined ? req.body.archived === true : tab.archived !== true);
+    saveDb();
+    broadcastEvent('tab_updated', tab);
+    res.json({ success: true, tab });
+});
+app.patch('/api/tabs/:id/pin', (req, res) => {
+    const tab = db.tabs.find(t => t.id === req.params.id);
+    if (!tab) return res.status(404).json({ error: 'Tab not found' });
+    if (req.body.pinned !== undefined ? req.body.pinned === true : !tab.pinned) tab.pinned = true;
+    else delete tab.pinned;
+    saveDb();
+    broadcastEvent('tab_updated', tab);
+    res.json({ success: true, tab });
+});
+
 app.put('/api/tabs/:id', (req, res) => {
     const id = req.params.id;
     let tab = db.tabs.find(t => t.id === id);
+    if (!tab && req.body.baseRevision !== undefined) return res.status(409).json({ error: 'This note was removed. Save your draft as a new note.' });
+    if (tab && !checkRevision(req, res, tab)) return;
+    if (req.body.content !== undefined && typeof req.body.content !== 'string') return res.status(400).json({ error: 'Content must be a string' });
+    if (req.body.name !== undefined && typeof req.body.name !== 'string') return res.status(400).json({ error: 'Name must be a string' });
     if (!tab) {
         tab = { id, name: req.body.name || 'New Tab', icon: '📝', content: '', mode: 'markdown', updatedAt: new Date().toISOString() };
         db.tabs.push(tab);
@@ -1674,12 +1737,12 @@ app.put('/api/tabs/:id', (req, res) => {
 
     saveDb();
     broadcastEvent('tab_updated', tab);
-    res.json({ success: true, tab });
+    res.json({ success: true, tab, revision: revision(tab) });
 });
 
 app.post('/api/tabs', (req, res) => {
     const newTab = {
-        id: 'tab_' + Date.now(),
+        id: 'tab_' + crypto.randomUUID(),
         name: req.body.name || 'Untitled Tab',
         icon: req.body.icon || '📝',
         content: req.body.content || '',

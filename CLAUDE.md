@@ -1,6 +1,6 @@
 # Clipboard Workspace (RellLab)
 
-Self-hosted shared clipboard / scratchpad. Single-file vanilla-JS frontend (`index.html`, no build step), Express API (`server.js`), JSON file store, SSE live sync. Runs in Docker on the homelab Raspberry Pi. See `README.md` for features and the API table.
+Self-hosted shared clipboard / scratchpad. Vanilla-JS frontend (`index.html` + `assets/`, no build step), Express API (`server.js`), JSON file store, SSE live sync. Runs in Docker on the homelab Raspberry Pi. See `README.md` for the current UI and API additions. The simplification supersedes older UI notes below.
 
 ## Where it runs / how to access it
 
@@ -15,7 +15,7 @@ Self-hosted shared clipboard / scratchpad. Single-file vanilla-JS frontend (`ind
 `data/` and `uploads/` are the user's actual history (items, tabs, photos, audio, video). Legacy items must never be altered, removed or corrupted.
 
 1. **Back up before any change**: `ssh rpi` then copy `data/db.json`, tar `uploads/`, and record `sha256sum`s into `~/archive/backups/Clipboard_prechange_<timestamp>/`.
-2. **Never run `npm test` (or any test) against the live server.** The suite creates and deletes items. `npm test` now always starts an isolated server in a temp dir; only `--target=`/`TEST_BASE_URL` points it elsewhere, and that prints a warning. (Before this was fixed it auto-attached to `localhost:8084`.) Do not run tests on the Pi at all; run them on the PC.
+2. **Never run `npm test` (or any test) against the live server.** The suite creates and deletes items. `npm test` now always starts an isolated server in a temp dir; only `--target=`/`TEST_BASE_URL` points it elsewhere, and that prints a warning. (Before this was fixed it auto-attached to `localhost:8084`.) Default workflow is to run tests on the PC. On 2026-11-02 the user explicitly authorized isolated tests on this Pi using temporary synthetic data and separate ports, with no requests to the live app and no access to its database/uploads. This authorization permits that isolated validation without asking again; it never permits a live test target.
 3. **Test server changes on a copy first**: copy `db.json` + `uploads/` to a `mktemp -d`, run `PORT=3199 NODE_PATH=~/Clipboard/node_modules node ~/Clipboard/server.js` from that dir, and `cmp` the db against the backup. Stop it by PID (see below).
 4. New fields must be optional and default-off so old items are valid as-is. Archive is the model: `archived: true` + `archivedAt`, and restoring **deletes** both keys so an item returns to its exact original shape. Archiving never touches `updatedAt` or files on disk.
 5. "Delete" in the UI is **Trash**, not removal: `trashed: true` + `trashedAt` on items and tabs (restore deletes both keys; files stay on disk; `updatedAt` untouched). `DELETE /api/items/:id` and `DELETE /api/tabs/:id` remain permanent and are only called from the Trash view ("Delete forever", confirm dialog) and by API users. `POST /api/trash/empty` needs `{confirm:true}`.
@@ -30,8 +30,8 @@ The PC has Node, so develop locally and only use the Pi for git + Docker:
 
 ```bash
 # pull the source down (PC, Git Bash)
-ssh rpi 'cd ~/Clipboard && tar cf - server.js index.html package.json package-lock.json README.md CLAUDE.md Dockerfile docker-compose.yml nginx.conf start.sh .gitignore tests' | tar xf -
-npm install && npm test                # isolated temp-dir server, 70 tests
+ssh rpi 'cd ~/Clipboard && tar cf - server.js index.html assets package.json package-lock.json README.md CLAUDE.md Dockerfile docker-compose.yml nginx.conf start.sh .gitignore tests' | tar xf -
+npm install && npm test                # isolated temp-dir server
 
 # push changes back, then on the Pi
 tar cf - <changed files> | ssh rpi 'cd ~/Clipboard && tar xf -'
@@ -48,17 +48,21 @@ ssh rpi 'cd ~/Clipboard && docker-compose up -d --build'   # index.html is baked
 ## Architecture notes / gotchas
 
 - `server.js` (~1.6k lines): lossless streaming uploads with SHA-256, Range-aware downloads, atomic `db.json` writes (tmp + fsync + rename), SSE broadcast, orphan-file re-index and SHA backfill on boot, `snapshotDb()` before any boot write.
-- `index.html` (~5k lines): all CSS/JS inline. State is `allItems`, `tabs`, `ftStoredFiles`. The feed and file table use **event delegation with `data-action` attributes and `escapeHtml`'d values**; do not reintroduce inline `onclick="fn('${name}')"` strings (filenames with quotes break out of them).
-- Per-browser view prefs live in `localStorage` via `Prefs`: `clipboard_cards_mode`, `clipboard_card_overrides`, `clipboard_tabs_collapsed`, `clipboard_feed_collapsed`, `rell_theme`. Never store anything important there.
-- The tab bar precedes `.workspace-split` in the DOM, so mobile hiding uses `body.view-clips` (toggled in `switchMobileView`), not a sibling selector.
-- Tabs: `db.tabs` array order IS the tab order (`PUT /api/tabs/order` registers before `PUT /api/tabs/:id`, which upserts, so route order matters). The client renders `visibleTabs()` (non-trashed); the `tabs` array also holds trashed tabs so the Trash view and Undo work. Window-level drag handlers ignore non-file drags so reordering a tab does not trigger the upload overlay.
-- Search: the feed search also scans tab names/contents client-side (`searchTabs()`, shown for the All and Notes filters, trashed tabs excluded) and `openTabAtMatch()` selects the first match.
-- The `# tags` UI was removed on purpose; the `tags` array is still written and kept in the data and API for backward compatibility. Do not show or search it in the UI.
-- Clicking a clip no longer loads it into the editor (that silently replaced the tab's text on the next keystroke). Use the "Open in a new editor tab" button.
+- `index.html` is now the app shell; `assets/workspace.css`, `assets/workspace-core.js`, and `assets/workspace.js` implement the Notes/Documents/Media UI. Docker must copy `assets/` into Nginx. Keep content escaped and delegated actions keyed by IDs; never interpolate private titles/filenames into inline JavaScript.
+- The new SaveQueue captures per-record drafts at edit time and serializes writes. Never read the active editor later to save an older note. Ctrl/Cmd+S flushes; snapshot creation is explicit. Minimize is a view preference, completely separate from Trash.
+- `/api/workspace` provides computed `_revision` tokens without modifying stored records. The new client supplies `baseRevision` on updates; 409 keeps the draft for explicit recovery. Legacy API clients may omit it. Save failures must return 503, never Saved; `saveDb()` rolls memory back and throws.
+- Per-browser view preferences use the `clipboard_v3_` prefix. Store only view state, selected IDs and theme; never store drafts or private content in localStorage. Unsent drafts are in memory with unload protection.
+- Tabs remain the existing `db.tabs` records. The sidebar list replaces the old horizontal strip, but IDs, contents and array ordering remain valid. Optional archive/pin endpoints operate on tabs without a migration.
+- Documents and Media are classifications over existing file records. Note attachments are Markdown links to file IDs; do not automatically reassociate old uploads, duplicate file bytes, or delete a file when a note is trashed.
+- Scrolling layout: keep the application grid row bounded with `minmax(0, 1fr)` and `min-height: 0` through `.collection`, `.detail`, and the list/editor flex chain. `.entry-list` owns vertical scrolling; headers/footer must not shrink into its space. Keep both `100vh` fallback and `100dvh` sizing for phones.
+- Never read a hidden list's `scrollTop` as its saved position: mobile uses `display: none` for the list while a note is open. `rememberListScroll()` only captures visible lists; Back/Minimize restore it. Unchanged `renderList()` output must keep DOM rows intact so sync does not interrupt touch momentum.
+- `npm run test:scroll` runs isolated Playwright fixtures at six desktop/mobile sizes. Configure `PLAYWRIGHT_MODULE_PATH` and `CHROMIUM_EXECUTABLE_PATH` for an external installation. It starts no server, intercepts all requests and must never contact the real app. It is separate from the eight-tier API/core suite.
+- The removed tags UI stays removed. The `tags` array remains in legacy data/API for compatibility.
+- Preserve same-origin checks and the original Host port in the Nginx proxy (`$http_host`). CLI calls without Origin remain supported. Access stays local/VPN by user request; do not add a login or change exposure.
 - Upload limit is 100MB in three places: Multer in `server.js`, `client_max_body_size` in `nginx.conf`, and the docs. Change all together.
 - No authentication: trusted LAN only. Do not expose to the internet without a VPN or authenticating proxy.
 - Tests use Node's built-in runner (`node --test`). Tier 6 (`tests/tier6_archive_and_legacy_safety.test.js`) boots against a legacy-shaped seed and asserts items, tabs, and uploads are unchanged, and is the regression guard for the data-safety rules above.
 
 ## Ideas not yet done
 
-Optional PIN/auth, per-clip expiry, touch drag-and-drop for tabs (the toolbar arrows cover touch today), and uploading large files in chunks.
+Optional per-clip expiry and uploading large files in chunks. Access remains local/VPN by user request; the current UI uses a note list rather than reorderable tabs.
