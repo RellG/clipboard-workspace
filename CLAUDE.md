@@ -1,49 +1,42 @@
-# Clipboard Workspace (RellLab)
+# Clipboard contributor guidance
 
-Self-hosted shared clipboard / scratchpad. Vanilla-JS frontend (`index.html` + `assets/`, no build step), Express API (`server.js`), JSON file store, SSE live sync. Runs in Docker on the homelab Raspberry Pi. See `README.md` for the current UI and API additions. The simplification supersedes older UI notes below.
+Self-hosted notes and file library with a vanilla JavaScript frontend, Express API, JSON storage, and SSE sync. See `README.md` for setup. No frontend build step is required.
 
-## Where it runs / how to access it
+## Private installation configuration
 
-- **Host**: Raspberry Pi 4 (`raspberrypi`, aarch64, Node 18, Docker Compose v5), LAN IP `192.168.4.129`.
-- **SSH** (key auth, non-interactive OK): `ssh reynoldshomelab@192.168.4.129` or, from the Windows PC, the alias `ssh rpi` (also `rellhomelab`), defined in `C:\Users\rellf\.ssh\config`.
-- **Project dir**: `~/Clipboard` on the Pi (`/home/reynoldshomelab/Clipboard`), a git checkout of `git@github.com:RellG/clipboard-workspace.git`, branch `main`. The Pi has GitHub SSH auth and a git identity, so **commit and push from the Pi**.
-- **App URL**: `http://192.168.4.129:8084` (container `relllab-clipboard`, nginx :80 -> host :8084, Express on :3000 inside).
-- **Real data** (bind mounts, gitignored, owned by root because the container runs as root): `~/Clipboard/data/db.json` and `~/Clipboard/uploads/`.
+Never commit personal names, email addresses, local network addresses, SSH aliases, machine usernames, absolute workstation paths, backup locations, or production port mappings. Use placeholders in documentation. Keep deployment settings in an ignored `.env` file, starting from `.env.example`. Do not copy private configuration into commits, issues, screenshots, or logs.
 
-## Non-negotiable: real data lives here
+The converter shortcut reads `CLIPBOARD_CONVERTER_URL` through `/api/config`. Its address must be reachable by the browser; loopback refers to the browser's computer. An empty setting hides the shortcut. Do not hardcode an installation URL in HTML or JavaScript.
 
-`data/` and `uploads/` are the user's actual history (items, tabs, photos, audio, video). Legacy items must never be altered, removed or corrupted.
+## Data safety
 
-1. **Back up before any change**: `ssh rpi` then copy `data/db.json`, tar `uploads/`, and record `sha256sum`s into `~/archive/backups/Clipboard_prechange_<timestamp>/`.
-2. **Never run `npm test` (or any test) against the live server.** The suite creates and deletes items. `npm test` now always starts an isolated server in a temp dir; only `--target=`/`TEST_BASE_URL` points it elsewhere, and that prints a warning. (Before this was fixed it auto-attached to `localhost:8084`.) Default workflow is to run tests on the PC. On 2026-11-02 the user explicitly authorized isolated tests on this Pi using temporary synthetic data and separate ports, with no requests to the live app and no access to its database/uploads. This authorization permits that isolated validation without asking again; it never permits a live test target.
-3. **Test server changes on a copy first**: copy `db.json` + `uploads/` to a `mktemp -d`, run `PORT=3199 NODE_PATH=~/Clipboard/node_modules node ~/Clipboard/server.js` from that dir, and `cmp` the db against the backup. Stop it by PID (see below).
-4. New fields must be optional and default-off so old items are valid as-is. Archive is the model: `archived: true` + `archivedAt`, and restoring **deletes** both keys so an item returns to its exact original shape. Archiving never touches `updatedAt` or files on disk.
-5. "Delete" in the UI is **Trash**, not removal: `trashed: true` + `trashedAt` on items and tabs (restore deletes both keys; files stay on disk; `updatedAt` untouched). `DELETE /api/items/:id` and `DELETE /api/tabs/:id` remain permanent and are only called from the Trash view ("Delete forever", confirm dialog) and by API users. `POST /api/trash/empty` needs `{confirm:true}`.
-   - **Auto-purge** runs after server start and hourly: it removes only entries with `trashed === true` AND a valid `trashedAt` older than `TRASH_RETENTION_DAYS` (default 30; `0` disables). Missing or unparsable `trashedAt` is never purged. A `-purge.json` snapshot of the full db is written first, and a file is only unlinked if no remaining item references it. Do not loosen this without updating Tier 7.
-   - Archive and Trash flags are independent (archive -> trash -> restore stays archived).
-6. Safety net: `data/snapshots/` holds `db-<iso>-boot.json` (every server start; keep 20) and `-auto.json` (hourly; keep 30), `-purge.json` (before any purge or Empty trash; keep 10). `db.json.bak` only mirrors the last save, so it is **not** a history.
-7. After a deploy, verify: `curl localhost:8084/api/health` (item/tab counts), `cmp data/db.json <backup>/db.json`, and `sha256sum -c <backup>/uploads.sha256` from inside `uploads/`.
+- `data/`, `uploads/`, backups, and seed exports contain private user content and must stay ignored.
+- Back up the database, uploads, and file hashes outside the repository before changes to a real installation.
+- Never run mutation tests against production. `npm test` starts an isolated temporary server with synthetic data. Do not supply a live `TEST_BASE_URL` or `--target`.
+- Start test servers only in separate temporary working directories. Starting `server.js` in the project directory may reindex files, write the database, or purge expired Trash.
+- Keep legacy record IDs, content, array ordering, and file bytes unchanged. New optional fields must not require a migration. Restore operations remove lifecycle flags rather than rewriting content or timestamps.
+- Deletion from the main interface means recoverable Trash. Permanent deletion requires explicit confirmation in the Trash view.
+- Auto-purge removes only records explicitly trashed with a valid timestamp older than retention. Snapshot first and keep shared file bytes while another record references them.
+- After deployment, check health, compare the database to the backup, and verify upload hashes. Account for legitimate concurrent edits without exposing their contents.
 
-## Develop / test / deploy workflow
-
-The PC has Node, so develop locally and only use the Pi for git + Docker:
+## Development and deployment
 
 ```bash
-# pull the source down (PC, Git Bash)
-ssh rpi 'cd ~/Clipboard && tar cf - server.js index.html assets package.json package-lock.json README.md CLAUDE.md Dockerfile docker-compose.yml nginx.conf start.sh .gitignore tests' | tar xf -
-npm install && npm test                # isolated temp-dir server
-
-# push changes back, then on the Pi
-tar cf - <changed files> | ssh rpi 'cd ~/Clipboard && tar xf -'
-ssh rpi 'cd ~/Clipboard && git add -A && git commit -m "..." && git push origin main'
-ssh rpi 'cd ~/Clipboard && docker-compose up -d --build'   # index.html is baked into the image, so UI changes need a rebuild
-# Use the hyphenated docker-compose (v1.29). The `docker compose` plugin (v5) is too new for the Pi's Docker 20.10 daemon
-# and fails with "client version 1.52 is too new". Verify afterwards (see the checklist above).
+npm ci
+npm test
+# Optional isolated browser regression; requires Playwright and Chromium.
+npm run test:scroll
 ```
 
-- Commit/PR attribution lines follow the harness instructions; push straight to `main` only when the user has asked for it.
-- For UI checks without touching real data: run the real `server.js` on another port with synthetic data, and serve `index.html` through a small static+proxy (the Node server does **not** serve `index.html`; nginx does in the container). Use string ids (`BigInt`/strings), not JS numbers above 2^53.
-- Kill processes over ssh **by PID** (`ss -ltnp | grep :3199`). `pkill -f <pattern>` matches the ssh shell's own command line and kills the session.
+Docker serves the frontend through Nginx and proxies the API to Node. Rebuild the image after HTML, CSS, or JavaScript changes:
+
+```bash
+cp .env.example .env  # First setup only; do not overwrite an existing .env.
+# Edit .env privately for this installation.
+docker compose up -d --build
+```
+
+Use the Compose command compatible with the deployment host; some older installations require `docker-compose`. Do not record a particular host's versions, access commands, or network details here. Preserve data mounts and network boundaries. Push directly to the default branch only when authorized by the user. Stop test processes by PID rather than broad process-name matches.
 
 ## Architecture notes / gotchas
 

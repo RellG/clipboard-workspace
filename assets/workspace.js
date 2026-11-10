@@ -96,6 +96,15 @@ async function refresh() {
     }
 }
 function scheduleRefresh() { clearTimeout(refreshTimer); refreshTimer = setTimeout(refresh, 180); }
+async function configureConverter() {
+    try {
+        const config = await api('/config');
+        const url = new URL(config.converterUrl);
+        if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return;
+        $('converterLink').href = url.href;
+        $('converterLink').hidden = false;
+    } catch (_) { /* The optional shortcut stays hidden when unconfigured or offline. */ }
+}
 function isVisibleInView(entry) {
     const r = entry.record;
     if (state.view === 'trash') return r.trashed === true;
@@ -450,4 +459,5 @@ const events = new EventSource('/api/events');
 events.onopen = () => { $('connectionStatus').textContent = 'Connected'; $('connectionStatus').classList.remove('offline'); scheduleRefresh(); };
 events.onerror = () => { $('connectionStatus').textContent = 'Reconnecting…'; $('connectionStatus').classList.add('offline'); };
 for (const name of ['item_created', 'item_updated', 'item_deleted', 'tab_created', 'tab_updated', 'tab_deleted', 'tabs_reordered', 'files_uploaded', 'file_deleted']) events.addEventListener(name, scheduleRefresh);
+configureConverter();
 refresh();

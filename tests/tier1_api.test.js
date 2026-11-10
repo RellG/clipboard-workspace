@@ -183,7 +183,7 @@ describe('Tier 1: Feature Coverage (Core API Contracts & Endpoints)', () => {
     });
 
     it('POST /api/file and GET /api/file/:filename uploads and serves files accurately', async () => {
-        const fileContent = 'Hello RellLab E2E Test Suite File Upload ' + Date.now();
+        const fileContent = 'Hello Clipboard E2E Test Suite File Upload ' + Date.now();
         const originalFilename = 'e2e-test-file.txt';
 
         const formData = new FormData();

@@ -3,9 +3,11 @@ version: '3.8'
 services:
   clipboard:
     build: .
-    container_name: relllab-clipboard
+    container_name: ${CLIPBOARD_CONTAINER_NAME:-clipboard}
     ports:
-      - "8084:80"   # Frontend (nginx)
+      - "${CLIPBOARD_HTTP_PORT:-8080}:80"   # Example default; override in .env
+    environment:
+      CLIPBOARD_CONVERTER_URL: ${CLIPBOARD_CONVERTER_URL:-}
     restart: unless-stopped
     volumes:
       - ./uploads:/app/uploads  # Persist uploaded files

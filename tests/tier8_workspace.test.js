@@ -7,10 +7,17 @@ const json = (body, method = 'PUT') => ({ method, headers: { 'Content-Type': 'ap
 const seed = { version: 2, items: [{ id: 'legacy', type: 'text', title: 'Legacy', content: 'original clip', updatedAt: '2026-10-01T00:00:00Z' }], tabs: [{ id: 'alpha', name: 'Alpha', content: 'original note', mode: 'text', updatedAt: '2026-10-01T00:00:00Z' }] };
 describe('Tier 8: Workspace, conflict detection and persistence failures', () => {
     let server;
-    before(async () => { server = await startSeededServer(structuredClone(seed), {}, { TRASH_RETENTION_DAYS: '0' }); });
+    before(async () => { server = await startSeededServer(structuredClone(seed), {}, { TRASH_RETENTION_DAYS: '0', CLIPBOARD_CONVERTER_URL: 'https://converter.example.test/' }); });
     after(async () => { if (server) await server.stop(); });
     const request = (endpoint, options) => fetchApi(server.baseUrl, endpoint, options);
     const workspace = async () => (await request('/api/workspace')).body;
+    it('Exposes the configured converter address without changing stored records', async () => {
+        const original = server.readDb();
+        const response = await request('/api/config');
+        assert.equal(response.status, 200);
+        assert.deepEqual(response.body, { converterUrl: 'https://converter.example.test/' });
+        assert.deepEqual(server.readDb(), original);
+    });
     it('Provides computed revision tokens without migrating any legacy record', async () => {
         const dbBefore = fs.readFileSync(path.join(server.dataDir, 'db.json'), 'utf8');
         const response = await request('/api/workspace');

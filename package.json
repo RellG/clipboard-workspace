@@ -1,7 +1,7 @@
 {
-  "name": "relllab-clipboard",
+  "name": "clipboard-workspace",
   "version": "1.0.0",
-  "description": "Shared clipboard for RellLab",
+  "description": "Self-hosted notes and file library",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

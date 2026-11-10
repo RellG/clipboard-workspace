@@ -773,6 +773,16 @@ function detectContentType(content, explicitType) {
 // REST API Endpoints: Items & Tabs
 // ============================================================================
 
+// Installation-specific addresses belong in runtime configuration, never source.
+app.get('/api/config', (req, res) => {
+    let converterUrl = null;
+    try {
+        const url = new URL(process.env.CLIPBOARD_CONVERTER_URL);
+        if (['http:', 'https:'].includes(url.protocol) && !url.username && !url.password) converterUrl = url.href;
+    } catch (_) {}
+    res.json({ converterUrl });
+});
+
 function revision(entry) {
     return crypto.createHash('sha256').update(JSON.stringify(entry)).digest('hex');
 }
@@ -1807,7 +1817,7 @@ app.use((err, req, res, next) => {
 });
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✨ RellLab Clipboard Engine v2 running on port ${PORT}`);
+    console.log(`✨ Clipboard Engine v2 running on port ${PORT}`);
     console.log(`📁 Persistence active at ${DB_FILE}`);
     console.log(`📡 SSE Stream live at /api/events`);
     console.log(`🗑️  Trash auto-purge: ${TRASH_RETENTION_DAYS > 0 ? `after ${TRASH_RETENTION_DAYS} day(s)` : 'disabled'}`);

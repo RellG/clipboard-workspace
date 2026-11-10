@@ -103,7 +103,7 @@ async function main() {
     }
 
     console.log(`${BOLD}${CYAN}======================================================${RESET}`);
-    console.log(`${BOLD}${CYAN}   RellLab Shared Clipboard — E2E Test Suite Runner   ${RESET}`);
+    console.log(`${BOLD}${CYAN}   Clipboard — E2E Test Suite Runner   ${RESET}`);
     console.log(`${BOLD}${CYAN}======================================================${RESET}\n`);
 
     let ephemeralServer = null;
@@ -111,7 +111,7 @@ async function main() {
 
     if (!targetUrl) {
         // Never auto-attach to a running server: the suite creates and deletes items, so pointing
-        // it at a live instance (e.g. the homelab container on :8084) would modify real data.
+        // it at a live instance would modify real data.
         console.log(`Starting isolated test server instance (temp data dir, random port)...`);
         ephemeralServer = await startTestServer();
         targetUrl = ephemeralServer.baseUrl;

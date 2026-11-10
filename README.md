@@ -11,7 +11,7 @@ A small, self-hosted notes and file library for the homelab. Open a note, write,
 - **Search:** one search box finds active notes, clips and filenames across the three libraries. Search within Archive or Trash stays within that section. Code, Links, Pinned and Saved clips are optional note filters. File contents and OCR are not indexed.
 - **Attachments:** use Attach in a note, or paste/drop a file into the active editor. Files are stored once and linked in the note as Markdown download links. Library uploads are standalone. Trashing a note does not delete linked files.
 - **File tools:** select a file to preview or download it. File details contains SHA-256 and copyable curl commands. Original filenames, bytes and media Range requests are preserved. The upload limit remains 100 MB per file.
-- **File converter:** the sidebar shortcut opens [Local Converter](https://github.com/RellG/local-converter) in a new tab at `http://127.0.0.1:4317/`. Start the converter on the homelab PC, then use the shortcut from a browser on that same PC. The converter currently binds to loopback and checks for a local Host header, so this shortcut does not provide access from phones or other computers. Download a Clipboard file and select it in the converter; files are not transferred automatically.
+- **File converter:** an optional sidebar shortcut opens a separately running converter in a new tab. Configure `CLIPBOARD_CONVERTER_URL` privately in `.env`; the shortcut is hidden when unset. The URL is opened by the browser, so a loopback address works only on the computer running that converter. Download a Clipboard file and select it in the converter; files are not transferred automatically.
 - **Archive and Trash:** archive hides an entry without deleting it. Move to Trash is explicit and recoverable, with Undo. Permanent deletion and Empty Trash require confirmation. Trash auto-purges after 30 days by default, with a snapshot taken first; `TRASH_RETENTION_DAYS=0` disables auto-purge. The original protected scratchpad/notes records still cannot be trashed.
 - **Writing tools:** plain writing is the default. The note menu has headings, checklist syntax, reading preview and code mode. Preview checklists are display-only; edit their Markdown source to change them.
 
@@ -33,13 +33,13 @@ Unsaved drafts live in memory, not localStorage. Keep the page open until they a
 
 ## Access
 
-Clipboard remains local to the homelab and behind its VPN. There is **no built-in login** and this change adds no public route, port, or proxy. Anyone who can reach the service can access it. Keep its existing network boundary.
+Run Clipboard on a trusted private network or behind a VPN or authenticating proxy. There is **no built-in login** and this change adds no public route, port, or proxy. Anyone who can reach the service can access it. Choose and maintain an appropriate network boundary.
 
-Browser API requests are same-origin by default; CLI clients without an Origin header still work. Additional browser origins require an explicit comma-separated `CLIPBOARD_ALLOWED_ORIGINS` setting. Nginx forwards the original host and port so same-origin checks work on `:8084`. Markdown permits HTTP/HTTPS/mailto and application file-download links. Uploaded file responses are sandboxed, with nosniff headers.
+Browser API requests are same-origin by default; CLI clients without an Origin header still work. Additional browser origins require an explicit comma-separated `CLIPBOARD_ALLOWED_ORIGINS` setting. Nginx forwards the original host and port so same-origin checks work with custom port mappings. Markdown permits HTTP/HTTPS/mailto and application file-download links. Uploaded file responses are sandboxed, with nosniff headers.
 
 ## Architecture
 
-Browser → Nginx `:8084` → Express `:3000` → `data/db.json` and `uploads/`.
+Browser → Nginx → Express → `data/db.json` and `uploads/`.
 
 - `index.html`: application shell with accessible controls and dialogs.
 - `assets/workspace.css`: system fonts, light/dark themes, responsive list/detail layout.
@@ -55,16 +55,16 @@ Atomic writes flush a temporary file and rename it over the database. A failed c
 
 ```bash
 npm install
-npm start  # API only, on port 3000; use Nginx for the frontend
+npm start  # API only; use Nginx for the frontend
 ```
 
-Use the existing Docker Compose installation to serve the complete app. Follow `CLAUDE.md` for the Pi's Compose compatibility and deployment procedure. Rebuilding is necessary for HTML, CSS and JavaScript changes because they are copied into the image.
+To serve the complete app, copy `.env.example` to `.env`, choose a host port and optional converter URL, then run `docker compose up -d --build` (or `docker-compose` on older installations). The example host port is a generic default, not an installation address. Rebuilding is necessary for HTML, CSS and JavaScript changes because they are copied into the image. Keep `.env` private; only `.env.example` belongs in Git.
 
 ```bash
 npm test
 ```
 
-The runner starts a temporary server with synthetic data and a random port. Never pass a live address through `--target` or `TEST_BASE_URL`: those options explicitly allow writes/deletes. Project guidance defaults to the development PC. The user explicitly authorized isolated Pi validation on 2026-11-02, provided it uses only temporary synthetic data and separate ports, without live requests or access to real data.
+The runner starts a temporary server with synthetic data and a random port. Never pass a live address through `--target` or `TEST_BASE_URL`: those options explicitly allow writes/deletes. Use temporary synthetic data and separate ports, without live requests or access to real data.
 
 The suite covers API contracts, malformed requests, persistence/SSE, per-note save queues, safe previews, file routing, lossless transfer, unchanged legacy records, archive/trash/retention, computed revisions, conflicts and failed disk commits. Browser layout and touch interaction also need verification before deployment; passing API/core tests does not establish visual correctness.
 
@@ -95,11 +95,15 @@ Existing item, tab, file, archive, Trash, download and SSE endpoints remain avai
 Computed revisions and new tab flags do not require a database migration. Existing records, IDs, tab order and lifecycle rules stay valid. File paths and terminal retrieval continue to work, for example:
 
 ```bash
-curl -fLOJ 'http://<homelab-ip>:8084/api/files/<file-id>/download'
+curl -fLOJ 'https://clipboard.example.com/api/files/<file-id>/download'
 ```
 
-## Implementation status
+## Configuration
 
-The 2026-11-10 source update includes the current Notes/Documents/Media interface, scrolling improvements, and the Local Converter sidebar shortcut. All 75 automated tests passed again against isolated synthetic data. The converter shortcut requires a Docker rebuild to appear on an existing installation and opens the converter on the computer using the browser.
+| Variable | Purpose |
+|---|---|
+| `CLIPBOARD_HTTP_PORT` | Host port for Docker; defaults to the generic example in `.env.example`. |
+| `CLIPBOARD_CONTAINER_NAME` | Optional container name for an installation. |
+| `CLIPBOARD_CONVERTER_URL` | Optional HTTP/HTTPS converter URL exposed to the browser through `GET /api/config`. Blank hides the shortcut. URLs containing embedded credentials are rejected. |
 
-Source implementation is complete and all 75 automated tests passed in the authorized isolated Pi run. See `SIMPLIFICATION_PLAN.md` for the design, scope and validation record. The new interface was rebuilt and deployed on 2026-11-03. Postdeployment API checks and served-asset comparisons passed; the database remained byte-identical to the predeployment backup and all upload hashes matched. The scrolling follow-up is also deployed: desktop wheel and mobile touch/Back checks passed against the live app, backed by six isolated viewport scenarios and reduced-height phone checks. See `SIMPLIFICATION_PLAN.md` for the release record.
+Loopback addresses in internal health checks and synthetic tests are standard local process communication, not deployment addresses. Keep real hostnames, ports, account details, and backup locations out of public documentation.
